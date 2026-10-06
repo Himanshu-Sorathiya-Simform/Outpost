@@ -1,0 +1,87 @@
+.card {
+  min-width: 0;
+  list-style: none;
+  background: var(--paper);
+  border: var(--bw-thin) solid var(--rule);
+}
+.card::marker {
+  content: none;
+}
+.enabled {
+  border-color: var(--ink);
+  box-shadow: inset 4px 0 0 var(--warn);
+}
+.invalid {
+  border-color: var(--error-ink);
+}
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  padding: var(--space-2) var(--space-3);
+}
+.no {
+  flex: none;
+  min-width: 1.5rem;
+  font: 850 var(--fs-d3) / 1 var(--font-display);
+  color: var(--accent);
+  text-align: center;
+}
+.order,
+.actions {
+  display: flex;
+  flex: none;
+  gap: var(--space-1);
+}
+.summary {
+  display: flex;
+  flex: 1 1 14rem;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+  min-width: 0;
+  min-height: 24px;
+  padding: 0;
+  text-align: left;
+  color: var(--ink);
+  background: transparent;
+  border: 0;
+}
+.summary:disabled {
+  cursor: default;
+}
+.line {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  max-width: 100%;
+  min-width: 0;
+}
+.line > svg {
+  flex: none;
+}
+.label {
+  max-width: 100%;
+  overflow: hidden;
+  font: 650 var(--fs-md) / 1.3 var(--font-mono);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.meta {
+  max-width: 100%;
+  overflow: hidden;
+  font: var(--fs-xs) / 1.4 var(--font-mono);
+  color: var(--ink-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+.body {
+  padding: var(--space-3) var(--space-4) var(--space-2);
+  border-top: var(--bw-thin) solid var(--rule);
+}

@@ -1,0 +1,24 @@
+.code {
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+.figure {
+  font-variant-numeric: tabular-nums;
+}
+.meterCell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 6rem;
+}
+.latencyCell {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.latencyCell .figure {
+  min-width: 4.25rem;
+}
+.dash {
+  color: var(--ink-muted);
+}

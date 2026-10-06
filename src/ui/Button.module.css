@@ -1,0 +1,134 @@
+.btn {
+  --btn-shadow: var(--shadow-ink);
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: var(--ctl-h);
+  padding: 0 var(--space-4);
+  font: 600 var(--fs-sm) / 1 var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-decoration: none;
+  white-space: nowrap;
+  color: var(--ink);
+  background: var(--paper-raised);
+  border: var(--bw) solid var(--ink);
+  border-radius: var(--radius);
+  box-shadow: 2px 2px 0 var(--btn-shadow);
+  cursor: pointer;
+  user-select: none;
+  transition:
+    transform var(--dur) var(--ease),
+    box-shadow var(--dur) var(--ease),
+    background-color var(--dur) var(--ease);
+}
+.btn:hover {
+  background: var(--paper-raised);
+}
+.btn:not(:disabled):not([aria-disabled='true']):hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0 var(--btn-shadow);
+}
+.btn:not(:disabled):not([aria-disabled='true']):active,
+.pressed {
+  transform: translate(2px, 2px);
+  box-shadow: 0 0 0 var(--btn-shadow);
+}
+
+/* primary: flare (or phosphor in the lab) slab */
+.primary {
+  color: var(--accent-on);
+  background: var(--accent);
+}
+.primary:hover {
+  background: var(--accent);
+}
+
+/* ghost: paper-coloured with an ink outline; shadow appears on hover only */
+.ghost {
+  background: transparent;
+  box-shadow: none;
+}
+.ghost:hover {
+  background: var(--paper-raised);
+}
+
+.danger {
+  --btn-shadow: var(--error-ink);
+  color: var(--error-ink);
+  border-color: var(--error-ink);
+}
+.danger:hover {
+  background: var(--error-wash);
+}
+
+/* quiet: a text button, underlined on hover */
+.quiet {
+  padding-inline: var(--space-2);
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+.quiet:not(:disabled):not([aria-disabled='true']):hover {
+  transform: none;
+  box-shadow: none;
+  background: var(--accent-wash);
+  border-color: var(--rule);
+}
+
+.sm {
+  min-height: var(--ctl-h-sm);
+  padding: 0 var(--space-3);
+  font-size: var(--fs-xs);
+}
+.lg {
+  min-height: var(--ctl-h-lg);
+  padding: 0 var(--space-5);
+  font-size: var(--fs-md);
+}
+.block {
+  display: flex;
+  width: 100%;
+}
+
+/* Disabled is dashed and flat: readable without relying on opacity alone. */
+.btn:disabled {
+  color: var(--ink-muted);
+  background: transparent;
+  border-style: dashed;
+  border-color: var(--rule);
+  box-shadow: none;
+  transform: none;
+}
+.btn[aria-disabled='true'] {
+  cursor: progress;
+}
+
+.content {
+  display: inline-flex;
+  align-items: center;
+  gap: inherit;
+}
+.loading .content {
+  visibility: hidden;
+}
+.spinner {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+
+/* icon-only */
+.iconOnly {
+  width: var(--ctl-h);
+  padding: 0;
+}
+.iconOnly.sm {
+  width: var(--ctl-h-sm);
+}
+.iconOnly.lg {
+  width: var(--ctl-h-lg);
+}

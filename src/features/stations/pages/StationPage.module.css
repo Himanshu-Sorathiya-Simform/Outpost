@@ -1,0 +1,30 @@
+.grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  gap: var(--space-6) var(--space-6);
+  align-items: start;
+}
+.col {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  min-width: 0;
+}
+.skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.hint {
+  font: var(--fs-xs) / 1.4 var(--font-mono);
+  color: var(--ink-muted);
+}
+@media (max-width: 900px) {
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-5);
+  }
+  .col {
+    gap: var(--space-5);
+  }
+}

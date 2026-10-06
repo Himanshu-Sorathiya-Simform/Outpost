@@ -1,0 +1,57 @@
+.list {
+  display: flex;
+  gap: 0;
+  overflow-x: auto;
+  border-bottom: var(--bw) solid var(--ink);
+}
+.tab {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: none;
+  min-height: var(--ctl-h);
+  padding: 0 var(--space-4);
+  margin-bottom: calc(-1 * var(--bw));
+  font: 600 var(--fs-xs) / 1 var(--font-mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  background: transparent;
+  border: var(--bw) solid transparent;
+  border-bottom: 0;
+  border-radius: 0;
+  cursor: pointer;
+}
+.tab:hover:not(.on):not(:disabled) {
+  color: var(--ink);
+  background: var(--accent-wash);
+}
+.tab:focus-visible {
+  outline-offset: -4px;
+}
+/* The selected tab is a folder tab: it joins the panel and cuts the rule below it. */
+.on {
+  color: var(--ink);
+  background: var(--paper-raised);
+  border-color: var(--ink);
+  min-height: calc(var(--ctl-h) + 2px);
+  box-shadow: inset 0 3px 0 var(--accent);
+  padding-bottom: var(--bw);
+}
+.tab:disabled {
+  color: var(--ink-muted);
+  cursor: not-allowed;
+  text-decoration: line-through;
+}
+.count {
+  padding: 1px 5px;
+  font-size: var(--fs-2xs);
+  color: var(--ink);
+  border: var(--bw-thin) solid currentColor;
+}
+.panel {
+  padding-top: var(--space-4);
+}
+.panel:focus-visible {
+  outline-offset: 4px;
+}

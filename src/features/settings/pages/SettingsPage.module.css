@@ -1,0 +1,24 @@
+.layout {
+  display: grid;
+  grid-template-columns: 13rem minmax(0, 1fr);
+  align-items: start;
+  gap: var(--space-6);
+}
+.column {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  min-width: 0;
+}
+.column > section {
+  scroll-margin-top: calc(var(--strip-h) + var(--space-5));
+}
+@media (max-width: 900px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-4);
+  }
+  .column > section {
+    scroll-margin-top: calc(var(--strip-h) + 3.5rem);
+  }
+}

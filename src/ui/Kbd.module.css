@@ -1,0 +1,21 @@
+.group {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25em;
+  vertical-align: baseline;
+}
+.key {
+  min-width: 1.8em;
+  padding: 0.15em 0.45em 0.2em;
+  font: 600 var(--fs-xs) / 1.2 var(--font-mono);
+  text-align: center;
+  color: var(--ink);
+  background: var(--paper-raised);
+  border: var(--bw-thin) solid var(--ink);
+  border-bottom-width: 3px;
+  border-radius: var(--radius-s);
+}
+.plus {
+  font: var(--fs-xs) var(--font-mono);
+  color: var(--ink-muted);
+}

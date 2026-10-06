@@ -1,0 +1,201 @@
+/*
+ * Outpost design tokens — "field log".
+ * Every colour in the product comes from here. Components never contain a hex value.
+ *
+ *   html[data-theme="light" | "dark"]   daylight ledger / night watch
+ *   [data-zone="lab"]                   swaps the accent from flare to phosphor green
+ *   html[data-density="compact"]        tighter controls and rows
+ *
+ * Naming: --x is a fill / border / graphic. --x-ink is the same hue made safe for TEXT on paper
+ * (>= 4.5:1 on paper, raised and sunk). --x-wash is a flat, low-alpha tint for backgrounds.
+ */
+
+:root {
+  color-scheme: light;
+
+  /* surfaces */
+  --paper: #ece6d6;
+  --paper-raised: #f4f0e4;
+  --paper-sunk: #e0d9c5;
+  --ink: #17150f;
+  --ink-muted: #564f40;
+  --rule: rgb(23 21 15 / 0.22);
+  --rule-soft: rgb(23 21 15 / 0.12);
+  --rule-strong: var(--ink);
+  --veil: rgb(23 21 15 / 0.55);
+  --grain-opacity: 0.05;
+
+  /* accent: flare (product) */
+  --flare: #e2461c;
+  --accent: var(--flare);
+  --accent-ink: #9c2a09;
+  --accent-on: #0a0906; /* ink on flare: 4.9:1 */
+  --accent-wash: rgb(226 70 28 / 0.12);
+
+  /* semantic */
+  --ok: #4a7a3a;
+  --ok-ink: #3a6a2b;
+  --ok-wash: rgb(74 122 58 / 0.14);
+  --warn: #b97a00;
+  --warn-ink: #734c00;
+  --warn-wash: rgb(185 122 0 / 0.14);
+  --error: #e2461c;
+  --error-ink: #9c2a09;
+  --error-wash: rgb(226 70 28 / 0.12);
+  --error-solid: #a82e0b;
+  --on-error-solid: #f4f0e4;
+  --info: #2c5282;
+  --info-ink: #2c5282;
+  --info-wash: rgb(44 82 130 / 0.12);
+
+  --focus: var(--accent-ink);
+  --shadow-ink: var(--ink);
+
+  /* telemetry strip: an inked bar by day, a recessed rule by night (a cream bar is the loudest thing on a dark page) */
+  --strip-bg: var(--ink);
+  --strip-ink: var(--paper);
+  --strip-rule: var(--ink);
+  --strip-ok: #7bb26a; /* the ok green, lightened for a dark strip in either theme */
+  --strip-h: 1.75rem;
+
+  /* type */
+  --font-display: 'Big Shoulders Display Variable', 'Arial Narrow', 'Helvetica Neue', sans-serif;
+  --font-read: 'Newsreader Variable', Georgia, 'Times New Roman', serif;
+  --font-mono: 'Spline Sans Mono Variable', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+
+  --fs-2xs: 0.6875rem;
+  --fs-xs: 0.75rem;
+  --fs-sm: 0.8125rem;
+  --fs-md: 0.875rem;
+  --fs-base: 1.0625rem;
+  --fs-lg: 1.25rem;
+  --fs-xl: 1.5rem;
+  --fs-d4: 1.25rem;
+  --fs-d3: 1.625rem;
+  --fs-d2: 2.25rem;
+  --fs-d1: clamp(2.75rem, 2rem + 3.6vw, 4.5rem);
+  --fs-numeral: clamp(2.5rem, 2rem + 2vw, 3.5rem);
+
+  --lh-tight: 0.95;
+  --lh-snug: 1.25;
+  --lh-read: 1.55;
+  --track-label: 0.08em;
+  --track-display: 0.02em;
+  --measure: 66ch;
+
+  /* space: 4px base */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+  --space-8: 4rem;
+  --gutter: 1rem;
+  --plate-pad: 1rem;
+  --row-py: 0.625rem;
+
+  /* control sizes */
+  --ctl-h: 2.25rem;
+  --ctl-h-sm: 1.75rem;
+  --ctl-h-lg: 2.75rem;
+
+  /* shape */
+  --radius: 0;
+  --radius-s: 2px;
+  --bw: 1.5px;
+  --bw-thin: 1px;
+  --shadow-hard: 3px 3px 0 var(--shadow-ink);
+  --shadow-hard-sm: 2px 2px 0 var(--shadow-ink);
+  --content-max: 1240px;
+
+  /* layers */
+  --z-rail: 10;
+  --z-strip: 20;
+  --z-popover: 40;
+  --z-drawer: 50;
+  --z-dialog: 60;
+  --z-toast: 70;
+
+  /* motion: short, linear, stepped */
+  --dur: 120ms;
+  --ease: linear;
+
+  /* the shell raises this to clear a bottom tab bar on phones */
+  --bottom-offset: 1rem;
+}
+
+/* Comfortable density is bigger on touch input. */
+@media (pointer: coarse) {
+  :root {
+    --ctl-h: 2.75rem;
+    --ctl-h-sm: 2.25rem;
+    --ctl-h-lg: 3.25rem;
+  }
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --paper: #12110d;
+  --paper-raised: #1a1914;
+  --paper-sunk: #0c0b09;
+  --ink: #e7e0cc;
+  --ink-muted: #9a937d;
+  --rule: rgb(231 224 204 / 0.2);
+  --rule-soft: rgb(231 224 204 / 0.1);
+  --veil: rgb(0 0 0 / 0.68);
+  --grain-opacity: 0.07;
+
+  --flare: #ff5a2b;
+  --accent-ink: #ff5a2b;
+  --accent-on: #12110d;
+  --accent-wash: rgb(255 90 43 / 0.14);
+
+  --ok: #7bb26a;
+  --ok-ink: #7bb26a;
+  --ok-wash: rgb(123 178 106 / 0.16);
+  --warn: #e8a92e;
+  --warn-ink: #e8a92e;
+  --warn-wash: rgb(232 169 46 / 0.16);
+  --error: #ff5a2b;
+  --error-ink: #ff6f45;
+  --error-wash: rgb(255 90 43 / 0.15);
+  --error-solid: #ff5a2b;
+  --on-error-solid: #12110d;
+  --info: #7fa6d6;
+  --info-ink: #7fa6d6;
+  --info-wash: rgb(127 166 214 / 0.16);
+
+  --strip-bg: var(--paper-sunk);
+  --strip-ink: var(--ink);
+
+  /* A full-strength cream shadow is loud on a dark page; dim it a step. */
+  --shadow-ink: #b9b29c;
+}
+
+/* The Lab is the instruments, not the product: the accent turns phosphor green. */
+[data-zone='lab'] {
+  --accent: #1f7a4a;
+  --accent-ink: #176a3e;
+  --accent-on: #f4f0e4;
+  --accent-wash: rgb(31 122 74 / 0.12);
+}
+:root[data-theme='dark'] [data-zone='lab'],
+:root[data-theme='dark'][data-zone='lab'] {
+  --accent: #4fe39a;
+  --accent-ink: #4fe39a;
+  --accent-on: #12110d;
+  --accent-wash: rgb(79 227 154 / 0.14);
+}
+
+:root[data-density='compact'] {
+  --ctl-h: 1.875rem;
+  --ctl-h-sm: 1.5rem;
+  --ctl-h-lg: 2.25rem;
+  --plate-pad: 0.75rem;
+  --row-py: 0.3125rem;
+  --gutter: 0.75rem;
+  --fs-base: 1rem;
+}

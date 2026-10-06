@@ -1,0 +1,10 @@
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+.remark {
+  font: var(--fs-xs) / 1.45 var(--font-mono);
+  color: var(--warn-ink);
+}

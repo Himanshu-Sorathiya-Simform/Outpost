@@ -1,0 +1,97 @@
+.app {
+  position: relative;
+  min-height: 100vh;
+  color: var(--ink);
+}
+
+.frame {
+  display: grid;
+  grid-template-columns: 15.5rem minmax(0, 1fr);
+  max-width: 1520px;
+  margin: 0 auto;
+}
+
+.rail {
+  position: sticky;
+  top: var(--strip-h);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  height: calc(100dvh - var(--strip-h));
+  padding: var(--space-5) var(--space-4) var(--space-4);
+  overflow-y: auto;
+  border-right: var(--bw) solid var(--ink);
+}
+.brand {
+  display: block;
+  width: fit-content;
+  text-decoration: none;
+  color: var(--ink);
+}
+.brand:hover {
+  background: transparent;
+}
+.groups {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+.controls {
+  margin-top: auto;
+  padding-top: var(--space-3);
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.banners {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4) clamp(var(--gutter), 3vw, var(--space-7)) 0;
+}
+.banners:empty {
+  display: none;
+}
+.main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  min-width: 0;
+  padding: var(--space-6) clamp(var(--gutter), 3vw, var(--space-7)) var(--space-8);
+}
+.main:focus {
+  outline: none;
+}
+.main > * {
+  width: 100%;
+  max-width: var(--content-max);
+}
+.pending {
+  display: grid;
+  place-items: center;
+  min-height: 40dvh;
+}
+
+@media (max-width: 900px) {
+  .frame {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .rail {
+    display: none;
+  }
+  .main {
+    gap: var(--space-5);
+    padding-top: var(--space-5);
+    padding-bottom: calc(4.75rem + var(--space-6) + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* Toasts sit above the phone tab bar instead of under it. */
+@media (max-width: 900px) {
+  :global(:root) {
+    --bottom-offset: calc(4.75rem + var(--space-2));
+  }
+}

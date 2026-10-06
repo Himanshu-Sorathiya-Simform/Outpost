@@ -1,0 +1,14 @@
+.note {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-2);
+  min-height: 1.25rem;
+  margin: 0;
+  font: var(--fs-xs) / 1.4 var(--font-mono);
+  color: var(--ink-muted);
+}
+.message {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}

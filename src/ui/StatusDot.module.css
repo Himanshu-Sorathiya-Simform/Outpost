@@ -1,0 +1,56 @@
+.wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
+  font: 500 var(--fs-xs) / 1.2 var(--font-mono);
+  vertical-align: middle;
+}
+.md {
+  --dot: 10px;
+}
+.sm {
+  --dot: 8px;
+}
+.dot {
+  --c: var(--ink-muted);
+  flex: none;
+  width: var(--dot);
+  height: var(--dot);
+  background: var(--c);
+}
+.ok {
+  --c: var(--ok);
+}
+.warn {
+  --c: var(--warn);
+  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+  width: calc(var(--dot) + 2px);
+  height: calc(var(--dot) + 2px);
+}
+.error {
+  --c: var(--error);
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+  width: calc(var(--dot) + 2px);
+}
+.info {
+  --c: var(--info);
+  border-radius: 50%;
+}
+.idle {
+  background: transparent;
+  border: 2px solid var(--ink-muted);
+  border-radius: 50%;
+}
+.live {
+  animation: blink 1.2s steps(1, end) infinite;
+}
+@keyframes blink {
+  0%,
+  59.9% {
+    opacity: 1;
+  }
+  60%,
+  100% {
+    opacity: 0.15;
+  }
+}

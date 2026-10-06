@@ -1,0 +1,157 @@
+.item {
+  display: grid;
+  grid-template-rows: 1fr;
+  margin: 0;
+  border-bottom: var(--bw-thin) solid var(--rule);
+}
+.item:last-child {
+  border-bottom: 0;
+}
+.row {
+  --edge: var(--rule);
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+  padding: var(--row-py) var(--plate-pad) var(--row-py) calc(var(--plate-pad) + 6px);
+  border-left: 6px solid var(--edge);
+}
+.row[data-severity='urgent'] {
+  --edge: var(--warn);
+  border-left-style: double;
+}
+.row[data-severity='critical'] {
+  --edge: var(--error);
+  border-left-style: solid;
+}
+.row:focus-visible {
+  outline-offset: -3px;
+}
+.active {
+  background: var(--paper-sunk);
+}
+.active::before {
+  content: '>';
+  position: absolute;
+  top: var(--row-py);
+  left: 0;
+  font: 700 var(--fs-xs) / 1.4 var(--font-mono);
+  color: var(--ink);
+}
+.main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-3);
+  font: var(--fs-xs) / 1.4 var(--font-mono);
+  color: var(--ink-muted);
+}
+.station {
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--ink);
+}
+.starred {
+  display: inline-flex;
+  color: var(--warn-ink);
+}
+.title {
+  font: 800 var(--fs-lg) / 1.1 var(--font-display);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+}
+.link {
+  color: var(--ink);
+  text-decoration: none;
+}
+.link:hover {
+  text-decoration: underline;
+  text-decoration-thickness: var(--bw);
+  background: transparent;
+}
+.strike {
+  position: relative;
+}
+.strike::after {
+  content: '';
+  position: absolute;
+  left: -2px;
+  top: 52%;
+  width: 0;
+  height: 3px;
+  background: var(--ink);
+}
+.excerpt {
+  max-width: var(--measure);
+  font: var(--fs-md) / 1.45 var(--font-read);
+  color: var(--ink-muted);
+}
+.actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--space-1);
+}
+.acked {
+  margin-left: var(--space-1);
+}
+
+/* Actioned: the title is struck in eight steps, then the row folds away in four. */
+.leaving {
+  animation: fold 200ms steps(4, end) 380ms forwards;
+}
+.leaving .row {
+  color: var(--ink-muted);
+}
+.leaving .strike::after {
+  animation: strike 360ms steps(8, end) forwards;
+}
+.leaving .title,
+.leaving .excerpt {
+  color: var(--ink-muted);
+}
+@keyframes strike {
+  to {
+    width: calc(100% + 4px);
+  }
+}
+@keyframes fold {
+  to {
+    grid-template-rows: 0fr;
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .leaving {
+    animation: none;
+    opacity: 0.6;
+  }
+  .leaving .strike::after {
+    animation: none;
+    width: calc(100% + 4px);
+  }
+}
+
+@media (max-width: 560px) {
+  .row {
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+  .actions {
+    align-self: flex-end;
+  }
+  .title {
+    font-size: var(--fs-d4);
+  }
+}

@@ -1,0 +1,76 @@
+.group {
+  display: inline-flex;
+  max-width: 100%;
+  /* Last resort on very narrow screens: scroll the group rather than push the page wide. */
+  overflow-x: auto;
+  border: var(--bw) solid var(--ink);
+  background: var(--paper-raised);
+}
+.block {
+  display: flex;
+  width: 100%;
+}
+.seg {
+  display: inline-flex;
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: calc(var(--ctl-h) - 2 * var(--bw));
+  padding: 0 var(--space-3);
+  font: 600 var(--fs-xs) / 1 var(--font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--ink);
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  cursor: pointer;
+}
+.seg + .seg {
+  border-left: var(--bw) solid var(--ink);
+}
+.seg:hover:not(.on):not(:disabled) {
+  background: var(--accent-wash);
+}
+.seg:focus-visible {
+  outline-offset: -4px;
+  outline-color: var(--paper);
+}
+.seg:not(.on):focus-visible {
+  outline-color: var(--focus);
+}
+.on {
+  color: var(--paper);
+  background: var(--ink);
+}
+.seg:disabled {
+  color: var(--ink-muted);
+  cursor: not-allowed;
+  text-decoration: line-through;
+}
+.sm .seg {
+  /* 24px is the WCAG 2.2 target-size floor, even when the compact density shrinks --ctl-h-sm. */
+  min-height: max(1.5rem, calc(var(--ctl-h-sm) - 2 * var(--bw)));
+  padding: 0 var(--space-2);
+  font-size: var(--fs-2xs);
+}
+
+@media (max-width: 359px) {
+  .seg {
+    padding: 0 var(--space-2);
+    letter-spacing: 0.03em;
+  }
+}
+
+.wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-1);
+  max-width: 100%;
+}
+.wrapBlock {
+  align-items: stretch;
+}

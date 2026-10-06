@@ -1,0 +1,36 @@
+/* Appears only if the navigation is still pending after 150 ms, so instant route changes never flash it. */
+.track {
+  position: fixed;
+  top: var(--strip-h);
+  left: 0;
+  right: 0;
+  z-index: var(--z-strip);
+  height: 3px;
+  pointer-events: none;
+  animation: reveal 1ms linear 150ms backwards;
+}
+.bar {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--accent);
+  transform: scaleX(0.6);
+  transform-origin: left center;
+  animation: crawl 10s steps(14, end) forwards;
+}
+@keyframes reveal {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes crawl {
+  from {
+    transform: scaleX(0.04);
+  }
+  to {
+    transform: scaleX(0.92);
+  }
+}

@@ -1,0 +1,43 @@
+.head {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.sub {
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: none;
+  color: var(--ink-muted);
+}
+.gap {
+  display: inline-block;
+  max-width: 22ch;
+  font: var(--fs-xs) / 1.35 var(--font-mono);
+  color: var(--ink-muted);
+}
+.fact {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-2);
+}
+.value {
+  font: 700 var(--fs-lg) / 1 var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+.same {
+  font: 600 var(--fs-2xs) / 1 var(--font-mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+.flags {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  white-space: nowrap;
+}
+.letters {
+  font: 600 var(--fs-sm) / 1 var(--font-mono);
+  letter-spacing: 0.18em;
+}

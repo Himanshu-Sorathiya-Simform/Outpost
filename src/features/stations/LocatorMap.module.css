@@ -1,0 +1,57 @@
+.map {
+  display: block;
+  width: 100%;
+  height: auto;
+  color: var(--ink);
+  font-family: var(--font-mono);
+}
+.field {
+  fill: var(--paper-sunk);
+}
+.grat {
+  stroke: var(--rule);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+.tick {
+  fill: var(--ink-muted);
+  font-size: 8px;
+  letter-spacing: 0.04em;
+}
+.cross {
+  stroke: var(--accent);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+  vector-effect: non-scaling-stroke;
+}
+.mark {
+  fill: var(--paper-raised);
+  stroke: var(--accent-ink);
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+.markInner {
+  fill: var(--accent);
+}
+.label {
+  fill: var(--ink);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+.other {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 1.25;
+  vector-effect: non-scaling-stroke;
+}
+.otherLabel {
+  fill: var(--ink-muted);
+  font-size: 8px;
+}
+.frame {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+}

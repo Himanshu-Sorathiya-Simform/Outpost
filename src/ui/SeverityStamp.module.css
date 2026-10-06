@@ -1,0 +1,89 @@
+.stamp {
+  --tone: var(--ink-muted);
+  --rot: -1.5deg;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55em;
+  padding: 0.3em 0.6em 0.3em 0.5em;
+  font: 700 var(--fs-xs) / 1 var(--font-mono);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--tone);
+  border: var(--bw-thin) solid var(--tone);
+  border-radius: var(--radius-s);
+  transform: rotate(var(--rot));
+  transform-origin: center;
+  vertical-align: middle;
+}
+.flat {
+  transform: none;
+}
+.sm {
+  font-size: var(--fs-2xs);
+}
+.lg {
+  font-size: var(--fs-md);
+  padding: 0.4em 0.8em 0.4em 0.65em;
+}
+
+.gauge {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 1.5px;
+  height: 0.95em;
+}
+.gauge i {
+  width: 0.26em;
+  background: currentColor;
+  opacity: 0.22;
+}
+.gauge i[data-on] {
+  opacity: 1;
+}
+.gauge i:nth-child(1) {
+  height: 28%;
+}
+.gauge i:nth-child(2) {
+  height: 52%;
+}
+.gauge i:nth-child(3) {
+  height: 76%;
+}
+.gauge i:nth-child(4) {
+  height: 100%;
+}
+
+/* routine: thin hairline */
+.routine {
+  --tone: var(--ink-muted);
+  --rot: -1.5deg;
+}
+
+/* notice: solid */
+.notice {
+  --tone: var(--info-ink);
+  --rot: -2deg;
+  border-width: 2px;
+}
+
+/* urgent: double rule */
+.urgent {
+  --tone: var(--warn-ink);
+  --rot: -2.5deg;
+  border: 5px double var(--tone);
+  padding-block: 0.12em;
+}
+
+/* critical: solid, inverted slab */
+.critical {
+  --tone: var(--on-error-solid);
+  --rot: -2deg;
+  background: var(--error-solid);
+  border: 2px solid var(--error-solid);
+  outline: var(--bw-thin) solid var(--error-solid);
+  outline-offset: 2px;
+}
+.critical .gauge i {
+  opacity: 1;
+}

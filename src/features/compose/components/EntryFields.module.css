@@ -1,0 +1,14 @@
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
+}
+.counter {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.06em;
+}
+.counterOff {
+  color: var(--error-ink);
+  font-weight: 700;
+}

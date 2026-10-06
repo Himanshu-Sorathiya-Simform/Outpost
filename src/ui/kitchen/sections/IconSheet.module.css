@@ -1,0 +1,28 @@
+.sheet {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: var(--bw) solid var(--ink);
+  border-left: var(--bw) solid var(--ink);
+}
+.cell {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  background: var(--paper-raised);
+  border-right: var(--bw) solid var(--ink);
+  border-bottom: var(--bw) solid var(--ink);
+}
+.glyphs {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-3);
+}
+.name {
+  font: 500 var(--fs-2xs) / 1.2 var(--font-mono);
+  letter-spacing: 0.06em;
+  color: var(--ink-muted);
+}

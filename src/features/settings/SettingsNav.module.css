@@ -1,0 +1,73 @@
+.nav {
+  position: sticky;
+  top: calc(var(--strip-h) + var(--space-4));
+  align-self: start;
+}
+.list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: var(--bw) solid var(--ink);
+  background: var(--paper-raised);
+}
+.link {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  min-height: 1.75rem;
+  padding: var(--space-2) var(--space-3);
+  font: 600 var(--fs-sm) / 1.2 var(--font-mono);
+  color: var(--ink);
+  text-decoration: none;
+  border-left: 4px solid transparent;
+  border-bottom: var(--bw-thin) solid var(--rule);
+}
+li:last-child .link {
+  border-bottom: 0;
+}
+.link:hover {
+  background: var(--paper-sunk);
+}
+.num {
+  font-size: var(--fs-2xs);
+  letter-spacing: 0.1em;
+  color: var(--ink-muted);
+}
+.current {
+  background: var(--paper-sunk);
+  border-left-color: var(--accent);
+}
+
+/* Phones: a single scrolling strip pinned under the telemetry bar. */
+@media (max-width: 900px) {
+  .nav {
+    top: var(--strip-h);
+    z-index: var(--z-rail);
+    margin: 0 calc(-1 * var(--gutter));
+    background: var(--paper);
+    border-bottom: var(--bw) solid var(--ink);
+    overflow-x: auto;
+  }
+  .list {
+    flex-direction: row;
+    width: max-content;
+    min-width: 100%;
+    border: 0;
+    background: transparent;
+  }
+  .link {
+    border-bottom: 0;
+    border-left: 0;
+    border-bottom: 4px solid transparent;
+    white-space: nowrap;
+  }
+  li:last-child .link {
+    border-bottom: 4px solid transparent;
+  }
+  .current {
+    border-left-color: transparent;
+    border-bottom-color: var(--accent);
+  }
+}

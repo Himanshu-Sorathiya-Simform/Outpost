@@ -1,0 +1,47 @@
+.stamp {
+  --tone: var(--ink);
+  display: inline-block;
+  max-width: 100%;
+  padding: 0.1em 0.45em;
+  overflow: hidden;
+  font: 700 var(--fs-2xs) / 1.25 var(--font-mono);
+  letter-spacing: 0.1em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+  vertical-align: middle;
+  color: var(--tone);
+  border: var(--bw-thin) solid var(--tone);
+  border-radius: var(--radius-s);
+}
+.network {
+  --tone: var(--ink-muted);
+}
+.cache {
+  --tone: var(--info-ink);
+  border-width: var(--bw);
+}
+.server_only {
+  --tone: var(--ink);
+  border-style: dashed;
+  border-width: var(--bw);
+}
+.pre_server {
+  --tone: var(--error-ink);
+  border-style: double;
+  border-width: 4px;
+  padding-block: 0;
+}
+.chaos {
+  --tone: var(--warn-ink);
+  color: var(--paper-raised);
+  background: var(--tone);
+}
+:root[data-theme='dark'] .chaos {
+  color: var(--paper);
+}
+.no_verdict {
+  --tone: var(--ink-muted);
+  border-style: dotted;
+  border-width: var(--bw);
+}

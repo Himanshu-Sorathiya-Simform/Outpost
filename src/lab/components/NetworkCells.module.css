@@ -1,0 +1,24 @@
+.ms,
+.dim {
+  color: var(--ink-muted);
+}
+.status {
+  font-weight: 650;
+}
+.bad {
+  color: var(--error-ink);
+}
+.differs {
+  padding: 0 0.3em;
+  color: var(--warn-ink);
+  border: var(--bw-thin) dashed var(--warn-ink);
+}
+.source {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+.sourceText {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

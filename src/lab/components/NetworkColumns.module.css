@@ -1,0 +1,22 @@
+.dim {
+  color: var(--ink-muted);
+}
+.phoneMethod {
+  display: none;
+  color: var(--ink-muted);
+}
+.classCell {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  max-width: 100%;
+}
+.heur {
+  color: var(--info-ink);
+  font-weight: 700;
+}
+@media (max-width: 720px) {
+  .phoneMethod {
+    display: inline;
+  }
+}

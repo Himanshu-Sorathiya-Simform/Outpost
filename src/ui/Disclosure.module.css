@@ -1,0 +1,64 @@
+.root {
+  min-width: 0;
+}
+.rule {
+  border-top: var(--bw-thin) solid var(--rule);
+}
+.boxed {
+  border: var(--bw) solid var(--ink);
+  background: var(--paper-raised);
+}
+.head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: var(--ctl-h);
+  padding: var(--space-2) 0;
+  font: 600 var(--fs-xs) / 1.3 var(--font-mono);
+  letter-spacing: 0.1em;
+  text-align: left;
+  text-transform: uppercase;
+  color: var(--ink);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+.boxed .head {
+  padding-inline: var(--space-3);
+}
+.head:hover .glyph {
+  background: var(--accent);
+  color: var(--accent-on);
+}
+.head:focus-visible {
+  outline-offset: -3px;
+}
+.glyph {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 1.25rem;
+  height: 1.25rem;
+  border: var(--bw) solid var(--ink);
+}
+.open .glyph {
+  background: var(--ink);
+  color: var(--paper);
+}
+.summary {
+  flex: 1;
+  min-width: 0;
+}
+.meta {
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: var(--ink-muted);
+}
+.body {
+  padding: var(--space-2) 0 var(--space-3) calc(1.25rem + var(--space-3));
+}
+.boxed .body {
+  padding: var(--space-3);
+  border-top: var(--bw-thin) solid var(--rule);
+}

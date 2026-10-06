@@ -1,0 +1,80 @@
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+}
+.top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-3) var(--space-5);
+}
+.titles {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+.eyebrow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font: 600 var(--fs-xs) / 1 var(--font-mono);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--accent-ink);
+}
+.eyebrow::before {
+  content: '';
+  width: 1.5rem;
+  height: 3px;
+  background: var(--accent);
+}
+.title {
+  font-size: var(--fs-d1);
+  font-weight: 850;
+  line-height: 0.88;
+  letter-spacing: 0.015em;
+  overflow-wrap: anywhere;
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+}
+.desc {
+  max-width: 62ch;
+  font-size: 1.1875rem;
+  line-height: 1.45;
+  color: var(--ink-muted);
+}
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+}
+/* A measured rule: a solid ink line with a ruler's tick marks hanging from it. */
+.ruler {
+  position: relative;
+  display: block;
+  height: 10px;
+  margin-top: var(--space-1);
+  border-top: var(--bw) solid var(--ink);
+}
+.ruler::after {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 8px;
+  background: var(--ink);
+  -webkit-mask-image: var(--mask-ticks);
+  mask-image: var(--mask-ticks);
+  -webkit-mask-repeat: repeat-x;
+  mask-repeat: repeat-x;
+  -webkit-mask-size: 40px 8px;
+  mask-size: 40px 8px;
+}

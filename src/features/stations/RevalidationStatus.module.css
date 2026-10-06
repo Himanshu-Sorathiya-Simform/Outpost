@@ -1,0 +1,27 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  /* One summary line is always reserved, so a changed station does not push the table down. */
+  min-height: calc(var(--fs-sm) * 1.3 + var(--fs-xs) * 1.4 + var(--space-1));
+}
+.line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-3);
+  margin: 0;
+  font: var(--fs-sm) / 1.3 var(--font-mono);
+}
+.label {
+  font-size: var(--fs-2xs);
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+.summary {
+  margin: 0;
+  font: var(--fs-xs) / 1.4 var(--font-mono);
+  color: var(--ink);
+}

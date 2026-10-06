@@ -1,0 +1,15 @@
+.strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-1) var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  font: 600 var(--fs-xs) / 1.4 var(--font-mono);
+  background: var(--paper-sunk);
+  border: var(--bw-thin) solid var(--rule);
+  border-left: 4px solid var(--ink);
+}
+.detail {
+  font-weight: 500;
+  color: var(--ink-muted);
+}

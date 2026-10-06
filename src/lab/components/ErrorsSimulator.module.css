@@ -1,0 +1,22 @@
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
+}
+.lede {
+  max-width: 78ch;
+  font: var(--fs-sm) / 1.55 var(--font-mono);
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 21rem), 1fr));
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.confirm {
+  max-width: 60ch;
+  font: var(--fs-sm) / 1.55 var(--font-mono);
+}

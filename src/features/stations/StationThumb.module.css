@@ -1,0 +1,48 @@
+.frame {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  background: var(--paper-sunk);
+  border: var(--bw-thin) solid var(--ink);
+}
+.thumb {
+  width: 4rem;
+  height: 2.75rem;
+}
+.hero {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-width: var(--bw);
+}
+.frame img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.loading::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--ink-muted);
+  opacity: 0.16;
+  -webkit-mask-image: var(--mask-hatch);
+  mask-image: var(--mask-hatch);
+  pointer-events: none;
+}
+.fallback {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  padding: var(--space-1);
+  font: 600 var(--fs-2xs) / 1.2 var(--font-mono);
+  letter-spacing: 0.1em;
+  text-align: center;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  background: var(--paper-sunk);
+  -webkit-mask: none;
+}
+.hero .fallback {
+  font-size: var(--fs-xs);
+}

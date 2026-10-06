@@ -1,0 +1,58 @@
+.figure {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+}
+.svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  background: var(--paper-sunk);
+}
+.frame {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+.grid,
+.axis,
+.cross {
+  vector-effect: non-scaling-stroke;
+}
+.grid {
+  stroke: var(--rule);
+  stroke-width: 1;
+}
+.axis {
+  stroke: var(--ink-muted);
+  stroke-width: 1;
+}
+.cross {
+  stroke: var(--accent);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
+.ring {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+.dot {
+  fill: var(--accent);
+}
+.caption {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font: 500 var(--fs-xs) / 1.4 var(--font-mono);
+}
+.coords {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.scale {
+  color: var(--ink-muted);
+}

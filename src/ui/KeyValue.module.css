@@ -1,0 +1,73 @@
+.list {
+  display: grid;
+  gap: 0 var(--space-6);
+  margin: 0;
+}
+.two {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr));
+}
+.row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  min-width: 0;
+  padding: var(--space-1) 0;
+}
+.dense .row {
+  padding: 1px 0;
+}
+.key {
+  flex: none;
+  font: 600 var(--fs-2xs) / 1.4 var(--font-mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+.leader {
+  flex: 1 1 1rem;
+  min-width: 0.75rem;
+  align-self: flex-end;
+  margin-bottom: 0.3em;
+  border-bottom: 2px dotted var(--rule);
+}
+.val {
+  min-width: 0;
+  margin: 0;
+  text-align: right;
+  font-size: var(--fs-sm);
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.long {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 2px;
+}
+.long .val {
+  text-align: left;
+}
+
+.stacked .row {
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-2) 0;
+  border-bottom: var(--bw-thin) solid var(--rule);
+}
+.stacked .val {
+  text-align: left;
+}
+
+/* In a narrow column a leader row would leave the value no room: drop the leader. */
+@media (max-width: 420px) {
+  .leader {
+    display: none;
+  }
+  .leader ~ .val {
+    flex: 1;
+  }
+}

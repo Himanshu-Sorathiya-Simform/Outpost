@@ -1,0 +1,46 @@
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
+  gap: var(--space-4);
+}
+.item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+  padding: var(--space-3);
+  background: var(--paper);
+  border: var(--bw-thin) solid var(--ink);
+}
+.item[data-on] {
+  border: var(--bw) solid var(--warn-ink);
+  box-shadow: var(--shadow-hard-sm);
+}
+.live {
+  font: 700 var(--fs-xs) / 1.2 var(--font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.symptom {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  font: var(--fs-xs) / 1.55 var(--font-mono);
+  color: var(--ink);
+}
+.symptomLabel {
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+.saving {
+  font: 600 var(--fs-xs) / 1 var(--font-mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+.error {
+  margin-bottom: var(--space-3);
+}

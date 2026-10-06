@@ -1,0 +1,65 @@
+/* Layout shared by the eight settings cards. */
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
+}
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-3);
+}
+.rowCenter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+.grow {
+  flex: 1 1 14rem;
+  min-width: 0;
+}
+.two {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: var(--space-5);
+}
+.sub {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+  padding: var(--space-3);
+  border: var(--bw-thin) solid var(--rule);
+  background: var(--paper);
+}
+.subTitle {
+  font: 700 var(--fs-xs) / 1.2 var(--font-mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.prose {
+  max-width: 62ch;
+  font: var(--fs-sm) / 1.55 var(--font-mono);
+  color: var(--ink-muted);
+}
+.prose code,
+.hint code {
+  font: inherit;
+  color: var(--ink);
+}
+.hint {
+  font: var(--fs-xs) / 1.5 var(--font-mono);
+  color: var(--ink-muted);
+}
+.readout {
+  margin: 0;
+}
+@media (max-width: 720px) {
+  .two {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

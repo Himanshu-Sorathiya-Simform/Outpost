@@ -1,0 +1,22 @@
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+}
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.tally {
+  font: var(--fs-xs) / 1.5 var(--font-mono);
+  color: var(--ink-muted);
+}
+.served {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}

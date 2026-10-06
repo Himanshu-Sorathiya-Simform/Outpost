@@ -1,0 +1,13 @@
+.plate {
+  min-width: 0;
+}
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}

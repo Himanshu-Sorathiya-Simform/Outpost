@@ -1,0 +1,21 @@
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+  padding-bottom: var(--space-3);
+  margin-bottom: var(--space-3);
+  border-bottom: var(--bw-thin) dashed var(--rule);
+}
+.text {
+  flex: 1 1 18rem;
+  min-width: 0;
+  font: var(--fs-sm) / 1.45 var(--font-mono);
+  color: var(--ink-muted);
+}
+.text code {
+  font: inherit;
+  font-weight: 600;
+  color: var(--ink);
+}

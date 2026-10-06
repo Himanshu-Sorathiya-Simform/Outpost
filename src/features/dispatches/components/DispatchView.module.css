@@ -1,0 +1,95 @@
+/* A dispatch title can be a full sentence, so the page title runs smaller than the display size of other pages. */
+.head h1 {
+  font-size: clamp(2rem, 1.3rem + 3vw, 3.5rem);
+  line-height: 0.95;
+}
+.fact {
+  font: 500 var(--fs-sm) / 1.3 var(--font-mono);
+}
+.station {
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+.tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3) var(--space-5);
+}
+.status {
+  display: flex;
+  flex-direction: column;
+}
+.status:empty {
+  margin-top: calc(-1 * var(--space-6));
+}
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(16rem, 21rem);
+  gap: var(--space-6) var(--space-7);
+  align-items: start;
+}
+.article {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  min-width: 0;
+}
+.plate {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  max-width: 44rem;
+}
+.figcaption {
+  font: 600 var(--fs-2xs) / 1.3 var(--font-mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+.body {
+  font-size: 1.1875rem;
+  line-height: 1.6;
+}
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.tags > li::marker {
+  content: none;
+}
+.aside {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  min-width: 0;
+}
+.position {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.positionHead {
+  font-size: var(--fs-xs);
+  color: var(--ink-muted);
+}
+.noPosition {
+  font: var(--fs-xs) / 1.5 var(--font-mono);
+  color: var(--ink-muted);
+}
+
+@media (max-width: 1000px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-5);
+  }
+  .status:empty {
+    margin-top: calc(-1 * var(--space-5));
+  }
+}

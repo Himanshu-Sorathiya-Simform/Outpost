@@ -1,0 +1,25 @@
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
+}
+.reset {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--space-2) var(--space-4);
+}
+.copy {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  max-width: 62ch;
+  font: var(--fs-sm) / 1.5 var(--font-mono);
+}
+.copy p {
+  margin: 0;
+}
+.muted {
+  color: var(--ink-muted);
+}

@@ -1,0 +1,7 @@
+.strip {
+  position: sticky;
+  top: var(--strip-h);
+  z-index: 5;
+  padding: var(--space-2) 0;
+  background: var(--paper);
+}

@@ -1,0 +1,110 @@
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+}
+.chipLabel {
+  font: 600 var(--fs-2xs) / 1 var(--font-mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    'counters'
+    'list'
+    'aside';
+  align-items: start;
+  gap: var(--space-5);
+}
+@media (min-width: 1100px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr) minmax(18rem, 22rem);
+    grid-template-areas:
+      'counters aside'
+      'list aside';
+    gap: var(--space-5) var(--space-7);
+  }
+}
+.aside {
+  grid-area: aside;
+  min-width: 0;
+}
+.counters {
+  grid-area: counters;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.list {
+  grid-area: list;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
+}
+.groups {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+.rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.none {
+  padding: var(--space-4) var(--plate-pad);
+  font: var(--fs-sm) / 1.45 var(--font-mono);
+  color: var(--ink-muted);
+}
+.result:focus {
+  outline: none;
+}
+.result:focus-visible {
+  outline: 2.5px solid var(--focus);
+  outline-offset: 4px;
+}
+
+.keys {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+  font: var(--fs-xs) / 1.6 var(--font-mono);
+  color: var(--ink-muted);
+}
+.keysLabel {
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+@media (pointer: coarse) {
+  .keys {
+    display: none;
+  }
+}
+
+.loader {
+  padding: var(--space-3) var(--plate-pad) 0;
+}
+.skeletons {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.skeletons li {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--plate-pad);
+  border-bottom: var(--bw-thin) solid var(--rule);
+}

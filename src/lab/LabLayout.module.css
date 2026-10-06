@@ -1,0 +1,71 @@
+.lab {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  min-width: 0;
+  max-width: var(--content-max);
+}
+@media (max-width: 900px) {
+  .lab {
+    gap: var(--space-5);
+  }
+}
+
+.bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: calc(-1 * var(--space-3));
+}
+.kicker {
+  font: 700 var(--fs-xs) / 1 var(--font-mono);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--accent-ink);
+}
+.feed {
+  color: var(--ink-muted);
+}
+
+.tabs {
+  border-block: var(--bw) solid var(--ink);
+}
+.list {
+  display: flex;
+  margin: 0;
+  padding: 0;
+  overflow-x: auto;
+  list-style: none;
+  scroll-snap-type: x proximity;
+}
+.list li {
+  flex: none;
+  scroll-snap-align: start;
+}
+.list li::marker {
+  content: none;
+}
+.tab {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: max(var(--ctl-h), 24px);
+  padding: 0 var(--space-3);
+  font: 600 var(--fs-xs) / 1 var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: var(--ink);
+  border-bottom: 4px solid transparent;
+}
+.tab:hover {
+  background: var(--accent-wash);
+}
+.tab[aria-current='page'] {
+  background: var(--paper-raised);
+  border-bottom-color: var(--accent);
+}
+.no {
+  color: var(--ink-muted);
+}

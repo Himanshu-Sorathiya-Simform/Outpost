@@ -1,0 +1,34 @@
+.wrap:empty {
+  display: none;
+}
+.note {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  font: var(--fs-sm) / 1.45 var(--font-mono);
+  color: var(--ink-muted);
+}
+.note > svg {
+  flex: none;
+  margin-top: 0.15em;
+}
+.note code {
+  font: inherit;
+  color: var(--ink);
+}
+.unwired {
+  padding: var(--space-2) var(--space-3);
+  border: var(--bw-thin) dashed var(--rule);
+}
+.ok {
+  color: var(--ok-ink);
+}
+.denied {
+  color: var(--warn-ink);
+}
+.time {
+  color: var(--ink-muted);
+}
+.subject {
+  color: var(--ink);
+}

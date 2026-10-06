@@ -1,0 +1,15 @@
+.lede {
+  max-width: 78ch;
+  margin-bottom: var(--space-3);
+  font: var(--fs-sm) / 1.55 var(--font-mono);
+  color: var(--ink-muted);
+}
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: var(--bw) solid var(--ink);
+}
+.list > :last-child {
+  border-bottom: 0;
+}

@@ -1,0 +1,110 @@
+.strip {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-strip);
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  height: var(--strip-h);
+  padding: 0 var(--gutter);
+  overflow: hidden;
+  box-sizing: border-box;
+  font: 600 var(--fs-2xs) / 1 var(--font-mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  --ok: var(--strip-ok);
+  color: var(--strip-ink);
+  background: var(--strip-bg);
+  border-bottom: var(--bw) solid var(--strip-rule);
+}
+.item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: inherit;
+}
+.end {
+  margin-left: auto;
+}
+.dim {
+  opacity: 0.7;
+}
+.alarm {
+  padding: 0.2em 0.5em;
+  color: var(--on-error-solid);
+  background: var(--error-solid);
+}
+.lie {
+  padding: 0.15em 0.5em;
+  color: var(--warn);
+  border: var(--bw-thin) solid var(--warn);
+  transform: rotate(-1.5deg);
+}
+.uncontrolled {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  opacity: 0.85;
+}
+.uncontrolled i {
+  width: 8px;
+  height: 8px;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+}
+.link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  min-height: 24px;
+  padding: 0 var(--space-1);
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  color: inherit;
+  text-decoration: none;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+.prefix {
+  margin-right: 0.5ch;
+}
+.link:hover {
+  background: transparent;
+  text-decoration: underline;
+  text-decoration-color: var(--accent);
+  text-underline-offset: 0.3em;
+}
+.link:focus-visible {
+  outline-color: var(--strip-ink);
+  outline-offset: -2px;
+}
+.pending {
+  color: var(--warn);
+}
+
+@media (max-width: 900px) {
+  .wide {
+    display: none;
+  }
+}
+@media (max-width: 640px) {
+  .strip {
+    gap: var(--space-3);
+  }
+  .version {
+    display: none;
+  }
+}
+@media (max-width: 480px) {
+  .strip {
+    gap: var(--space-2);
+    padding: 0 var(--space-2);
+    letter-spacing: 0.04em;
+  }
+  .prefix {
+    display: none;
+  }
+}

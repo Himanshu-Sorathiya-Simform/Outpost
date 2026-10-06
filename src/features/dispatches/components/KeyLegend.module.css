@@ -1,0 +1,23 @@
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+  font: 500 var(--fs-xs) / 1.6 var(--font-mono);
+  color: var(--ink-muted);
+}
+.lead {
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+@media (pointer: coarse) and (hover: none) {
+  .legend {
+    display: none;
+  }
+}

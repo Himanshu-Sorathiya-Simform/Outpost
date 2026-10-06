@@ -1,0 +1,22 @@
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+}
+.modes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-2);
+  margin: var(--space-1) 0 0;
+  padding: 0;
+  list-style: none;
+}
+.ua {
+  overflow-wrap: anywhere;
+}
+.hint {
+  max-width: 70ch;
+  font: var(--fs-xs) / 1.5 var(--font-mono);
+  color: var(--ink-muted);
+}

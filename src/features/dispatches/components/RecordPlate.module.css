@@ -1,0 +1,10 @@
+.plate {
+  min-width: 0;
+}
+.none {
+  color: var(--ink-muted);
+}
+.note {
+  font: var(--fs-xs) / 1.5 var(--font-mono);
+  color: var(--ink-muted);
+}

@@ -1,0 +1,31 @@
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  width: 100%;
+}
+.bar {
+  display: block;
+  max-width: 100%;
+  background: var(--ink-muted);
+  opacity: 0.3;
+  -webkit-mask-image: var(--mask-hatch);
+  mask-image: var(--mask-hatch);
+  animation: crawl 1.6s steps(8, end) infinite;
+}
+.line {
+  height: 0.9rem;
+}
+.title {
+  height: 2rem;
+}
+.block {
+  height: 6rem;
+  border: var(--bw-thin) solid var(--ink-muted);
+}
+@keyframes crawl {
+  to {
+    -webkit-mask-position: 8px 0;
+    mask-position: 8px 0;
+  }
+}

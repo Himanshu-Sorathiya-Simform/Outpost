@@ -1,0 +1,24 @@
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding-top: var(--space-2);
+  min-width: 0;
+}
+.lede {
+  max-width: 70ch;
+  font: var(--fs-sm) / 1.5 var(--font-mono);
+  color: var(--ink-muted);
+}
+.fields {
+  overflow-wrap: anywhere;
+}
+.names {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font: var(--fs-sm) / 1.4 var(--font-mono);
+}

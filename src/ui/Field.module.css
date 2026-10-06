@@ -1,0 +1,27 @@
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+/* The shared look of a control's caption lives in controls.module.css (.fieldLabel). */
+.req {
+  color: var(--accent-ink);
+}
+.hint {
+  font: var(--fs-xs) / 1.45 var(--font-mono);
+  color: var(--ink-muted);
+}
+.error {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-1);
+  font: 600 var(--fs-xs) / 1.45 var(--font-mono);
+  color: var(--error-ink);
+}
+.error:empty {
+  display: none;
+}
+.error svg {
+  margin-top: 0.1em;
+}

@@ -1,0 +1,32 @@
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+}
+.tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-3) var(--space-4);
+}
+.area {
+  min-width: 12rem;
+}
+.count {
+  margin: 0;
+  font: var(--fs-xs) / 1.4 var(--font-mono);
+  color: var(--ink-muted);
+}
+.feature {
+  font-weight: 650;
+}
+.error {
+  max-width: 52ch;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 720px) {
+  .error {
+    max-width: none;
+  }
+}

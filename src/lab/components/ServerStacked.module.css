@@ -1,0 +1,38 @@
+/* Ledger table that turns into stacked records under 720px, so a phone never scrolls sideways. */
+.stack {
+  width: 100%;
+}
+.label {
+  display: none;
+}
+@media (max-width: 720px) {
+  .stack,
+  .stack tbody,
+  .stack tr,
+  .stack td {
+    display: block;
+  }
+  .stack thead {
+    display: none;
+  }
+  .stack caption {
+    display: block;
+    width: 100%;
+  }
+  .stack tr {
+    padding: var(--space-3) 0;
+    border-bottom: var(--bw-thin) solid var(--rule);
+  }
+  .stack td {
+    padding: var(--space-1) var(--space-3);
+    border: 0;
+  }
+  .label {
+    display: block;
+    margin-bottom: 1px;
+    font: 600 var(--fs-2xs) / 1.2 var(--font-mono);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-muted);
+  }
+}

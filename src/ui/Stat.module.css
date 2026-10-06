@@ -1,0 +1,73 @@
+.group {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
+  margin: 0;
+  border: var(--bw) solid var(--ink);
+  background: var(--paper-raised);
+}
+.group > .stat {
+  padding: var(--space-3) var(--space-4);
+  border-right: var(--bw-thin) solid var(--rule);
+  border-bottom: var(--bw-thin) solid var(--rule);
+  margin: 0 -1px -1px 0;
+}
+.stat {
+  --tone: var(--ink);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+  margin: 0;
+}
+.ok {
+  --tone: var(--ok-ink);
+}
+.warn {
+  --tone: var(--warn-ink);
+}
+.error {
+  --tone: var(--error-ink);
+}
+.accent {
+  --tone: var(--accent-ink);
+}
+.label {
+  font: 600 var(--fs-2xs) / 1.2 var(--font-mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+.body {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin: 0;
+}
+.value {
+  font: 800 var(--fs-numeral) / 0.9 var(--font-display);
+  letter-spacing: 0.01em;
+  font-variant-numeric: tabular-nums;
+  color: var(--tone);
+}
+.lg .value {
+  font-size: calc(var(--fs-numeral) * 1.4);
+}
+.unit {
+  margin-left: 0.15em;
+  font: 600 var(--fs-xs) / 1 var(--font-mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+.trendRow {
+  margin: var(--space-1) 0 0;
+}
+.trend {
+  color: var(--tone);
+}
+.note {
+  margin: 0;
+  font: var(--fs-xs) / 1.4 var(--font-mono);
+  color: var(--ink-muted);
+}

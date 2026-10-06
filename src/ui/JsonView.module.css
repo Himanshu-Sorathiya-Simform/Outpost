@@ -1,0 +1,122 @@
+.view {
+  min-width: 0;
+  background: var(--paper-sunk);
+  border: var(--bw) solid var(--ink);
+}
+.bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  min-height: 2rem;
+  padding: 0 var(--space-2) 0 var(--space-3);
+  background: var(--paper-raised);
+  border-bottom: var(--bw-thin) solid var(--ink);
+}
+.title {
+  font: 600 var(--fs-2xs) / 1 var(--font-mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.tools {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 0;
+  gap: var(--space-1);
+}
+.tool {
+  min-height: 1.5rem;
+  padding: 0.35rem var(--space-2);
+  white-space: nowrap;
+  font: 600 var(--fs-2xs) / 1 var(--font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  background: transparent;
+  border: 0;
+}
+.tool:hover {
+  color: var(--ink);
+  background: var(--accent-wash);
+}
+.scroll {
+  overflow: auto;
+  padding: var(--space-3);
+  font: var(--fs-sm) / 1.6 var(--font-mono);
+}
+.row {
+  display: flex;
+  align-items: baseline;
+  min-width: max-content;
+}
+.children {
+  margin-left: 0.55rem;
+  padding-left: 0.95rem;
+  border-left: var(--bw-thin) dotted var(--rule);
+}
+.toggle,
+.spacer {
+  flex: none;
+  width: 1.1rem;
+  padding: 0;
+  font-size: 0.8em;
+  text-align: left;
+  color: var(--ink-muted);
+  background: transparent;
+  border: 0;
+}
+.toggle {
+  /* 24px hit area around a 1.1rem advance: the negative margins cancel the extra width and height. */
+  width: 1.5rem;
+  min-height: 1.5rem;
+  margin: -2px -0.2rem -2px -0.2rem;
+  text-align: center;
+  cursor: pointer;
+}
+.toggle:hover {
+  color: var(--accent-ink);
+}
+.key {
+  color: var(--ink);
+  font-weight: 600;
+}
+.colon {
+  color: var(--ink-muted);
+  white-space: pre;
+}
+.summary {
+  color: var(--ink-muted);
+}
+.val {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.string {
+  color: var(--ok-ink);
+}
+.number {
+  color: var(--info-ink);
+}
+.boolean {
+  color: var(--warn-ink);
+}
+.null,
+.undefined,
+.other {
+  color: var(--ink-muted);
+  font-style: italic;
+}
+.more {
+  margin: var(--space-1) 0 var(--space-1) 1.1rem;
+  padding: 0;
+  font: 600 var(--fs-2xs) / 1.4 var(--font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent-ink);
+  background: transparent;
+  border: 0;
+  text-decoration: underline;
+}

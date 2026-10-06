@@ -1,0 +1,25 @@
+.key {
+  min-width: 10rem;
+  font-weight: 600;
+}
+.vars {
+  min-width: 12rem;
+  max-width: 22rem;
+  font-size: var(--fs-xs);
+  color: var(--ink-muted);
+}
+.none {
+  color: var(--ink-muted);
+}
+.err {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--fs-xs);
+}
+.more {
+  margin-top: var(--space-3);
+  font: var(--fs-xs) / 1.4 var(--font-mono);
+  color: var(--ink-muted);
+}

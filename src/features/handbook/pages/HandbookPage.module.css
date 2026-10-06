@@ -1,0 +1,9 @@
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.updated {
+  font: var(--fs-xs) / 1.2 var(--font-mono);
+  color: var(--ink-muted);
+}

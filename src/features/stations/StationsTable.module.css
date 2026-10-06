@@ -1,0 +1,13 @@
+.statusCell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-1);
+}
+.code {
+  display: inline-block;
+  min-height: 24px;
+  padding-block: 4px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}

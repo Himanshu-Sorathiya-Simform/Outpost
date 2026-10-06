@@ -1,0 +1,37 @@
+.bar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+}
+.field {
+  flex: 0 1 11rem;
+  min-width: 8.5rem;
+}
+.grow {
+  flex: 1 1 14rem;
+  min-width: 10rem;
+}
+.toggles {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--space-2) var(--space-5);
+}
+.status {
+  display: flex;
+  align-items: center;
+  min-height: var(--ctl-h-sm);
+}
+.count {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  font: var(--fs-xs) / 1.4 var(--font-mono);
+  color: var(--ink-muted);
+}

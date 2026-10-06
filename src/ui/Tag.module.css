@@ -1,0 +1,69 @@
+.tag {
+  --tone: var(--ink-muted);
+  --tone-ink: var(--ink-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  max-width: 100%;
+  padding: 0.22em 0.5em;
+  font: 600 var(--fs-2xs) / 1.1 var(--font-mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--tone-ink);
+  border: var(--bw-thin) solid var(--tone);
+  border-radius: var(--radius-s);
+  vertical-align: middle;
+}
+.text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.neutral {
+  --tone: var(--ink);
+  --tone-ink: var(--ink);
+}
+.accent {
+  --tone: var(--accent);
+  --tone-ink: var(--accent-ink);
+}
+.ok {
+  --tone: var(--ok);
+  --tone-ink: var(--ok-ink);
+}
+.warn {
+  --tone: var(--warn);
+  --tone-ink: var(--warn-ink);
+}
+.error {
+  --tone: var(--error);
+  --tone-ink: var(--error-ink);
+}
+.info {
+  --tone: var(--info);
+  --tone-ink: var(--info-ink);
+}
+.solid {
+  color: var(--paper-raised);
+  background: var(--tone-ink);
+  border-color: var(--tone-ink);
+}
+:root[data-theme='dark'] .solid {
+  color: var(--paper);
+}
+/* 24px hit area (WCAG 2.2 target size); negative margins keep the chip at its visual size. */
+.remove {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  margin: -6px -6px -6px -2px;
+  padding: 0;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+.remove:hover {
+  background: var(--accent-wash);
+}

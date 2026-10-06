@@ -1,0 +1,39 @@
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
+}
+.absent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  max-width: 76ch;
+}
+.lede {
+  font-size: var(--fs-base);
+  line-height: 1.45;
+}
+.steps {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding-left: 1.5rem;
+  font: var(--fs-sm) / 1.5 var(--font-mono);
+}
+.steps code {
+  overflow-wrap: anywhere;
+}
+.members {
+  margin: 0;
+  padding-left: 1.25rem;
+  columns: 2 16rem;
+  font: var(--fs-xs) / 1.6 var(--font-mono);
+}
+.sub {
+  font: 600 var(--fs-2xs) / 1 var(--font-mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}

@@ -1,0 +1,29 @@
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+}
+.caption {
+  font: var(--fs-sm) / 1.55 var(--font-mono);
+  color: var(--ink-muted);
+  max-width: var(--measure);
+}
+.tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-3);
+}
+.search {
+  flex: 1 1 14rem;
+  max-width: 26rem;
+}
+.tools > button {
+  margin-bottom: 1.25rem;
+}
+.count {
+  margin-bottom: 1.25rem;
+  font: var(--fs-xs) / 1.4 var(--font-mono);
+  color: var(--ink-muted);
+}

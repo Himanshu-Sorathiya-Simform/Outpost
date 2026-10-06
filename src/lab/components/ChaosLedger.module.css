@@ -1,0 +1,29 @@
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
+}
+.hist {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 14rem), 1fr));
+  gap: var(--space-2) var(--space-5);
+}
+.ok {
+  font-weight: 700;
+  color: var(--ok-ink);
+}
+.kind {
+  display: inline-block;
+  padding: 0.05em 0.4em;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--error-ink);
+  border: var(--bw-thin) solid var(--error-ink);
+}
+.source {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}

@@ -1,0 +1,132 @@
+.row {
+  position: relative;
+  display: grid;
+  grid-template-columns: 4px 5.5rem minmax(0, 1fr) auto;
+  align-items: start;
+  gap: var(--space-3);
+  padding: var(--row-py) var(--space-3) var(--row-py) 0;
+  scroll-margin-block: 4rem;
+  border-bottom: var(--bw-thin) solid var(--rule);
+}
+.row:hover {
+  background: var(--accent-wash);
+}
+.bar {
+  align-self: stretch;
+  margin: calc(-1 * var(--row-py)) 0;
+  background: transparent;
+}
+.unread .bar {
+  background: var(--accent);
+}
+.thumb {
+  margin-top: 0.125rem;
+}
+.main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-3);
+  font: 500 var(--fs-xs) / 1.2 var(--font-mono);
+  color: var(--ink-muted);
+}
+.no {
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--ink);
+}
+.station {
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+/* The age and the exact time share one cell, so swapping them on hover or focus does not move the line. */
+.when {
+  display: inline-grid;
+  margin-left: auto;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.ago,
+.abs {
+  grid-area: 1 / 1;
+}
+.abs {
+  visibility: hidden;
+}
+.row:hover .abs,
+.row:focus-within .abs {
+  visibility: visible;
+}
+.row:hover .ago,
+.row:focus-within .ago {
+  visibility: hidden;
+}
+.title {
+  font-family: var(--font-display);
+  font-size: var(--fs-lg);
+  font-weight: 500;
+  line-height: 1.1;
+  letter-spacing: var(--track-display);
+  text-transform: uppercase;
+  text-wrap: balance;
+  overflow-wrap: anywhere;
+}
+.unread .title {
+  font-weight: 850;
+}
+.link {
+  color: inherit;
+  text-decoration: none;
+}
+.link:hover {
+  background: transparent;
+}
+.link::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+.link:focus-visible {
+  outline: none;
+}
+.link:focus-visible::after {
+  outline: 2.5px solid var(--focus);
+  outline-offset: -2px;
+}
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-2);
+}
+.more {
+  font: 600 var(--fs-2xs) / 1 var(--font-mono);
+  color: var(--ink-muted);
+}
+.actions {
+  position: relative;
+  display: flex;
+  gap: var(--space-1);
+}
+
+@media (max-width: 560px) {
+  .row {
+    grid-template-columns: 4px 3.5rem minmax(0, 1fr) auto;
+    gap: var(--space-2);
+  }
+  .actions {
+    flex-direction: column;
+  }
+  .title {
+    font-size: var(--fs-base);
+  }
+  .when {
+    margin-left: 0;
+  }
+}

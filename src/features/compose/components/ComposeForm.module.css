@@ -1,0 +1,35 @@
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
+  grid-template-areas:
+    'entry particulars'
+    'entry filing';
+  grid-template-rows: auto 1fr;
+  gap: var(--space-6) var(--space-5);
+  align-items: start;
+  min-width: 0;
+}
+.entry {
+  grid-area: entry;
+}
+.particulars {
+  grid-area: particulars;
+}
+.filing {
+  grid-area: filing;
+}
+@media (max-width: 900px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      'entry'
+      'particulars'
+      'filing';
+    grid-template-rows: none;
+    gap: var(--space-5);
+  }
+}
+.dialogText {
+  font: 600 var(--fs-sm) / 1.4 var(--font-mono);
+  overflow-wrap: anywhere;
+}

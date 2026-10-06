@@ -1,0 +1,23 @@
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr));
+  gap: var(--space-4);
+}
+.item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  background: var(--paper);
+  border: var(--bw-thin) solid var(--ink);
+}
+.name {
+  font-size: var(--fs-d4);
+  font-weight: 800;
+}
+.body {
+  flex: 1;
+  max-width: 62ch;
+  font: var(--fs-sm) / 1.55 var(--font-mono);
+}

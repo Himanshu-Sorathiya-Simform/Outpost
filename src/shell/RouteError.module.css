@@ -1,0 +1,45 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  min-width: 0;
+}
+.standalone {
+  max-width: 48rem;
+  min-height: 100dvh;
+  margin: 0 auto;
+  padding: var(--space-6) var(--gutter);
+}
+.plate {
+  max-width: 44rem;
+}
+.stale {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  font-size: var(--fs-base);
+}
+.lead {
+  font-size: 1.1875rem;
+  line-height: 1.45;
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  padding-top: var(--space-2);
+}
+.teach {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin-top: var(--space-3);
+  padding: var(--space-3);
+  font: var(--fs-sm) / 1.5 var(--font-mono);
+  background: var(--paper-sunk);
+  border-left: 4px solid var(--accent);
+}
+.ref {
+  color: var(--ink-muted);
+  overflow-wrap: anywhere;
+}

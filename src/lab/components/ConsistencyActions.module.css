@@ -1,0 +1,52 @@
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr));
+  gap: var(--space-5) var(--space-6);
+}
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+}
+.heading {
+  font: 600 var(--fs-2xs) / 1 var(--font-mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  padding-bottom: var(--space-1);
+  border-bottom: var(--bw-thin) solid var(--rule);
+}
+.lever {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+}
+.lever > :first-child {
+  flex: none;
+}
+.caption {
+  flex: 1 1 14rem;
+  max-width: 52ch;
+  font: var(--fs-xs) / 1.45 var(--font-mono);
+  color: var(--ink-muted);
+}
+.pick {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+}
+.pick > :first-child {
+  flex: 1 1 14rem;
+  min-width: 0;
+}
+.status {
+  margin-top: var(--space-3);
+  max-width: 76ch;
+  font: var(--fs-sm) / 1.45 var(--font-mono);
+}
+.status:empty {
+  display: none;
+}

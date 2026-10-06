@@ -1,0 +1,37 @@
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--space-3) var(--space-4);
+}
+.target {
+  flex: 1 1 15rem;
+  max-width: 24rem;
+}
+.timeout {
+  flex: 0 1 14rem;
+}
+.buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-self: flex-end;
+  margin-bottom: 1.25rem;
+}
+.note {
+  max-width: var(--measure);
+  font: var(--fs-xs) / 1.55 var(--font-mono);
+  color: var(--ink-muted);
+}
+.running {
+  min-height: 1.2em;
+  font: 600 var(--fs-xs) / 1.2 var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent-ink);
+}

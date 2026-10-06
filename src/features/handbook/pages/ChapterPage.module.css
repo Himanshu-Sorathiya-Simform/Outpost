@@ -1,0 +1,13 @@
+.article {
+  font-size: 1.1875rem;
+  line-height: 1.6;
+}
+.loading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  max-width: var(--measure);
+}
+.article > :first-child {
+  margin-top: var(--space-2);
+}

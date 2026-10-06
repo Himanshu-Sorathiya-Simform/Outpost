@@ -1,0 +1,103 @@
+.scroll {
+  max-width: 100%;
+  overflow-x: auto;
+}
+.sticky {
+  max-height: 32rem;
+  overflow-y: auto;
+}
+.table {
+  width: 100%;
+  font: var(--fs-sm) / 1.4 var(--font-mono);
+  border-collapse: separate;
+  border-spacing: 0;
+}
+.caption {
+  padding: var(--space-2) var(--space-3);
+  font: 600 var(--fs-2xs) / 1 var(--font-mono);
+  letter-spacing: 0.14em;
+  text-align: left;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  caption-side: top;
+}
+.th {
+  padding: var(--space-2) var(--space-3);
+  font: 600 var(--fs-2xs) / 1.2 var(--font-mono);
+  letter-spacing: 0.12em;
+  text-align: left;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--ink-muted);
+  background: var(--paper-raised);
+  border-bottom: var(--bw) solid var(--ink);
+}
+.sticky .th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+.td {
+  padding: var(--row-py) var(--space-3);
+  vertical-align: top;
+  border-bottom: var(--bw-thin) solid var(--rule);
+}
+.dense .td {
+  padding-block: calc(var(--row-py) / 2);
+}
+.numeric {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.mono {
+  overflow-wrap: anywhere;
+}
+.nowrap {
+  white-space: nowrap;
+}
+tbody tr:hover > .td {
+  background: var(--accent-wash);
+}
+.selected > .td {
+  background: var(--accent-wash);
+}
+.selected > .td:first-child {
+  box-shadow: inset 4px 0 0 var(--accent);
+}
+.flag_ok > .td:first-child {
+  box-shadow: inset 4px 0 0 var(--ok);
+}
+.flag_warn > .td:first-child {
+  box-shadow: inset 4px 0 0 var(--warn);
+}
+.flag_error > .td:first-child {
+  box-shadow: inset 4px 0 0 var(--error);
+}
+.foot > tr > .td,
+.foot > tr > .th {
+  border-top: var(--bw) solid var(--ink);
+  border-bottom: 0;
+  font-weight: 650;
+}
+
+.sortBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: 1.5rem;
+  margin-block: -0.25rem;
+  padding: 0;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+.sortBtn:hover {
+  color: var(--ink);
+}
+.sortIdle {
+  opacity: 0.45;
+}

@@ -1,0 +1,104 @@
+.row {
+  border-bottom: var(--bw-thin) solid var(--rule);
+}
+.head {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr) auto;
+  align-items: start;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-3) var(--space-3);
+  text-align: left;
+  color: var(--ink);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+.head:hover {
+  background: var(--paper-sunk);
+}
+.open .head {
+  background: var(--paper-sunk);
+}
+.glyph {
+  display: grid;
+  place-items: center;
+  height: 1.5rem;
+  color: var(--ink-muted);
+}
+.text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.user {
+  font: 600 var(--fs-md) / 1.35 var(--font-mono);
+}
+.tech {
+  font: var(--fs-xs) / 1.45 var(--font-mono);
+  color: var(--ink-muted);
+  overflow-wrap: anywhere;
+}
+.meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  font: var(--fs-xs) / 1.4 var(--font-mono);
+  color: var(--ink-muted);
+  text-align: right;
+}
+.source {
+  max-width: 18rem;
+  overflow-wrap: anywhere;
+}
+.when {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.detail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-3) var(--space-4) calc(var(--space-3) + 14px + var(--space-3));
+  background: var(--paper-sunk);
+  border-top: var(--bw-thin) dashed var(--rule);
+}
+.teach {
+  padding: var(--space-2) var(--space-3);
+  border-left: 3px solid var(--accent);
+  background: var(--paper-raised);
+}
+.teachLabel {
+  margin-bottom: var(--space-1);
+  font: 700 var(--fs-2xs) / 1 var(--font-mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent-ink);
+}
+.teachBody {
+  max-width: 70ch;
+  font: var(--fs-sm) / 1.5 var(--font-mono);
+}
+@media (max-width: 640px) {
+  .head {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+  .head > :nth-child(2) {
+    grid-column: 2;
+    justify-self: start;
+  }
+  .text,
+  .meta {
+    grid-column: 2;
+  }
+  .meta {
+    align-items: flex-start;
+    text-align: left;
+  }
+  .detail {
+    padding-left: var(--space-3);
+  }
+}

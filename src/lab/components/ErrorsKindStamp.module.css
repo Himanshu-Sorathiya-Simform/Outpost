@@ -1,0 +1,63 @@
+.stamp {
+  --tone: var(--ink-muted);
+  --rot: -1.5deg;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6em;
+  padding: 0.3em 0.55em;
+  font: 700 var(--fs-xs) / 1 var(--font-mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--tone);
+  background: transparent;
+  border: var(--bw-thin) solid var(--tone);
+  border-radius: var(--radius-s);
+  transform: rotate(var(--rot));
+  vertical-align: middle;
+}
+.sm {
+  font-size: var(--fs-2xs);
+  padding: 0.25em 0.45em;
+}
+.quiet {
+  --tone: var(--ink-muted);
+}
+.warn {
+  --tone: var(--warn-ink);
+  --rot: -2deg;
+  border-width: 2px;
+}
+.fault {
+  --tone: var(--error-ink);
+  --rot: -2.5deg;
+  border-style: double;
+  border-width: 4px;
+  padding: 0.2em 0.5em;
+}
+.count {
+  padding-left: 0.6em;
+  border-left: var(--bw-thin) solid currentColor;
+  font-variant-numeric: tabular-nums;
+}
+.button {
+  cursor: pointer;
+  min-height: 24px;
+}
+.button:hover {
+  background: var(--paper-sunk);
+}
+.on,
+.on:hover {
+  color: var(--paper-raised);
+  background: var(--tone);
+}
+:root[data-theme='dark'] .on,
+:root[data-theme='dark'] .on:hover {
+  color: var(--paper);
+}
+@media (prefers-reduced-motion: reduce) {
+  .stamp {
+    transition: none;
+  }
+}

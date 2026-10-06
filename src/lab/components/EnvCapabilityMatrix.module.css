@@ -1,0 +1,51 @@
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
+}
+.tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-3) var(--space-4);
+}
+.tally {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  font: var(--fs-sm) / 1.3 var(--font-mono);
+}
+.name {
+  font-weight: 650;
+}
+.method {
+  display: block;
+  margin-top: 2px;
+  font-size: var(--fs-xs);
+  color: var(--ink-muted);
+  overflow-wrap: anywhere;
+}
+.note {
+  display: block;
+  margin-top: var(--space-1);
+  max-width: 34ch;
+  font-size: var(--fs-xs);
+  line-height: 1.4;
+  color: var(--ink-muted);
+}
+.cell {
+  max-width: 36ch;
+  font: var(--fs-sm) / 1.4 var(--font-mono);
+}
+.foot {
+  max-width: 76ch;
+  font: var(--fs-xs) / 1.5 var(--font-mono);
+  color: var(--ink-muted);
+}
+.foot a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+}

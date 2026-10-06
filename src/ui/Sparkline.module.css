@@ -1,0 +1,9 @@
+.spark {
+  display: block;
+  overflow: visible;
+  color: var(--ink);
+}
+.empty {
+  display: inline-block;
+  border-bottom: var(--bw-thin) dashed var(--rule);
+}

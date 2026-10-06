@@ -1,0 +1,139 @@
+.dialog {
+  padding: 0;
+  color: var(--ink);
+  background: var(--paper-raised);
+  border: var(--bw) solid var(--ink);
+  border-radius: var(--radius);
+  box-shadow: 6px 6px 0 var(--shadow-ink);
+  overflow: visible;
+}
+/* Flat scrim: no blur, no gradient. */
+.dialog::backdrop {
+  background: var(--veil);
+}
+.dialog:not([open]) {
+  display: none;
+}
+
+.centered {
+  width: min(calc(100vw - 2rem), 34rem);
+  max-height: calc(100dvh - 2rem);
+  margin: auto;
+  animation: pop var(--dur) steps(3, end);
+}
+.sm {
+  width: min(calc(100vw - 2rem), 24rem);
+}
+.lg {
+  width: min(calc(100vw - 2rem), 52rem);
+}
+
+.drawer {
+  height: 100dvh;
+  max-height: none;
+  width: min(100vw, 28rem);
+  margin: 0;
+  box-shadow: none;
+  border-width: 0;
+  border-style: solid;
+  border-color: var(--ink);
+}
+.right {
+  margin-left: auto;
+  border-left-width: var(--bw);
+  animation: from-right var(--dur) steps(4, end);
+}
+.left {
+  margin-right: auto;
+  border-right-width: var(--bw);
+  animation: from-left var(--dur) steps(4, end);
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  max-height: inherit;
+  height: 100%;
+}
+.panel[data-variant='dialog'] {
+  max-height: calc(100dvh - 2rem - 3px);
+}
+.head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-3) var(--space-3) var(--space-4);
+  border-bottom: 4px double var(--ink);
+}
+.heading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+.title {
+  font-size: var(--fs-d3);
+  font-weight: 800;
+  line-height: 1;
+}
+.desc {
+  max-width: 48ch;
+  font: var(--fs-sm) / 1.5 var(--font-mono);
+  color: var(--ink-muted);
+}
+.body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-4);
+}
+.foot {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--paper-sunk);
+  border-top: var(--bw-thin) solid var(--ink);
+}
+
+@media (max-width: 640px) {
+  .right {
+    width: 100vw;
+    height: auto;
+    max-height: 88dvh;
+    margin: auto 0 0;
+    border-left-width: 0;
+    border-top-width: var(--bw);
+    animation: from-bottom var(--dur) steps(4, end);
+  }
+  .right .panel {
+    max-height: 88dvh;
+  }
+}
+
+@keyframes pop {
+  from {
+    transform: translateY(6px);
+    opacity: 0;
+  }
+}
+@keyframes from-right {
+  from {
+    transform: translateX(32px);
+    opacity: 0;
+  }
+}
+@keyframes from-left {
+  from {
+    transform: translateX(-32px);
+    opacity: 0;
+  }
+}
+@keyframes from-bottom {
+  from {
+    transform: translateY(32px);
+    opacity: 0;
+  }
+}

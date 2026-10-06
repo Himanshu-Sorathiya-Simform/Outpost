@@ -1,0 +1,72 @@
+.box {
+  --tone: var(--ink-muted);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  color: var(--ink);
+  background: var(--paper-raised);
+  border: 3px double var(--tone);
+  border-radius: var(--radius-s);
+}
+.error {
+  --tone: var(--error-ink);
+  border-style: double;
+  border-width: 4px;
+  background: var(--error-wash);
+}
+.warn {
+  --tone: var(--warn-ink);
+  border-style: solid;
+  border-width: var(--bw);
+  background: var(--warn-wash);
+}
+.idle {
+  --tone: var(--ink-muted);
+  border-style: dashed;
+  border-width: var(--bw);
+}
+.title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  font: 700 var(--fs-md) / 1.2 var(--font-mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--tone);
+}
+.title svg {
+  flex: none;
+}
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  font: var(--fs-sm) / 1.45 var(--font-mono);
+}
+.body p {
+  margin: 0;
+}
+.body dl {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: var(--space-1) var(--space-3);
+  margin: 0;
+}
+.body dt {
+  color: var(--ink-muted);
+}
+.body dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 480px) {
+  .body dl {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+  .body dd {
+    margin-bottom: var(--space-1);
+  }
+}

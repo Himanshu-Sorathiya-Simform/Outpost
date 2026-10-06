@@ -1,0 +1,128 @@
+/* Popover defaults (centered, bordered, clipped) are reset; the stack sits bottom-right. */
+.region {
+  position: fixed;
+  inset: auto var(--gutter) calc(var(--bottom-offset) + env(safe-area-inset-bottom, 0px)) auto;
+  z-index: var(--z-toast);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  width: min(24rem, calc(100vw - 2 * var(--gutter)));
+  max-height: calc(100dvh - 2rem);
+  margin: 0;
+  padding: 0;
+  overflow: visible;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  list-style: none;
+}
+.region:not(:popover-open) {
+  display: none;
+}
+
+.toast {
+  --tone: var(--info);
+  --tone-ink: var(--info-ink);
+  position: relative;
+  display: grid;
+  grid-template-columns: 2.5rem 1fr auto;
+  align-items: start;
+  overflow: hidden;
+  color: var(--ink);
+  background: var(--paper-raised);
+  border: var(--bw) solid var(--ink);
+  box-shadow: var(--shadow-hard);
+  animation: drop var(--dur) steps(3, end);
+}
+.ok {
+  --tone: var(--ok);
+  --tone-ink: var(--ok-ink);
+}
+.warn {
+  --tone: var(--warn);
+  --tone-ink: var(--warn-ink);
+}
+.error {
+  --tone: var(--error);
+  --tone-ink: var(--error-ink);
+}
+
+/* The left tab carries the tone as colour AND as a distinct glyph plus the printed kind. */
+.tab {
+  align-self: stretch;
+  display: grid;
+  place-items: start center;
+  padding-top: var(--space-3);
+  color: var(--paper-raised);
+  background: var(--tone-ink);
+  border-right: var(--bw) solid var(--ink);
+}
+:root[data-theme='dark'] .tab {
+  color: var(--paper);
+  background: var(--tone);
+}
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: var(--space-3);
+}
+.kind {
+  font: 700 var(--fs-2xs) / 1 var(--font-mono);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--tone-ink);
+}
+.title {
+  font: 650 var(--fs-md) / 1.35 var(--font-mono);
+}
+.message {
+  font: var(--fs-sm) / 1.5 var(--font-read);
+  font-size: 0.95rem;
+  color: var(--ink-muted);
+}
+.action {
+  align-self: flex-start;
+  margin-top: var(--space-2);
+  padding: 0;
+  font: 700 var(--fs-xs) / 1.2 var(--font-mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink);
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid var(--accent);
+  cursor: pointer;
+}
+.action:hover {
+  background: var(--accent-wash);
+}
+.toast > button {
+  margin: var(--space-1);
+}
+
+/* Time left, drained in coarse steps. Paused by hover and focus. */
+.drain {
+  position: absolute;
+  left: 2.5rem;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+  background: var(--tone-ink);
+  transform-origin: left;
+  animation: drain linear forwards;
+  animation-timing-function: steps(24, end);
+}
+
+@keyframes drop {
+  from {
+    transform: translateY(8px);
+    opacity: 0;
+  }
+}
+@keyframes drain {
+  to {
+    transform: scaleX(0);
+  }
+}

@@ -1,0 +1,62 @@
+.meter {
+  --tone: var(--accent);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+.ink {
+  --tone: var(--ink);
+}
+.ok {
+  --tone: var(--ok);
+}
+.warn {
+  --tone: var(--warn);
+}
+.error {
+  --tone: var(--error);
+}
+.info {
+  --tone: var(--info);
+}
+.head {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font: 600 var(--fs-2xs) / 1.2 var(--font-mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.label {
+  color: var(--ink-muted);
+}
+.value {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+}
+.track {
+  padding: 2px;
+  background: var(--paper-sunk);
+  border: var(--bw) solid var(--ink);
+}
+.bar {
+  position: relative;
+  display: block;
+  height: 0.875rem;
+  background: var(--rule);
+  -webkit-mask-image: var(--mask-segment);
+  mask-image: var(--mask-segment);
+  -webkit-mask-repeat: repeat-x;
+  mask-repeat: repeat-x;
+  -webkit-mask-size: calc(100% / var(--segs)) 100%;
+  mask-size: calc(100% / var(--segs)) 100%;
+}
+.sm .bar {
+  height: 0.5rem;
+}
+.fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--tone);
+}

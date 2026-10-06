@@ -1,0 +1,49 @@
+.empty {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+  padding: var(--space-6) var(--space-5);
+  border: var(--bw) dashed var(--rule);
+  color: var(--ink);
+}
+.compact {
+  padding: var(--space-4);
+  gap: var(--space-3);
+}
+.glyph {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 3.5rem;
+  height: 3.5rem;
+  color: var(--ink-muted);
+  border: var(--bw) solid var(--ink-muted);
+}
+.compact .glyph {
+  width: 2.5rem;
+  height: 2.5rem;
+}
+.text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+.title {
+  font: 800 var(--fs-d4) / 1 var(--font-display);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.body {
+  max-width: 52ch;
+  color: var(--ink-muted);
+  font-size: 1rem;
+}
+.action {
+  margin-top: var(--space-2);
+}
+@media (max-width: 480px) {
+  .empty {
+    flex-direction: column;
+  }
+}

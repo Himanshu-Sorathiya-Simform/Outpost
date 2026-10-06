@@ -1,0 +1,69 @@
+.card {
+  min-width: 0;
+}
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
+}
+.prose {
+  max-width: 62ch;
+  font: var(--fs-base) / var(--lh-read) var(--font-read);
+}
+.fails {
+  color: var(--ink-muted);
+  font-style: italic;
+}
+.pattern {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  background: var(--paper-sunk);
+  border-left: 4px solid var(--accent);
+}
+.patternLabel {
+  font: 600 var(--fs-2xs) / 1 var(--font-mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+.code {
+  flex: 1 1 14rem;
+  min-width: 0;
+  font: 600 var(--fs-sm) / 1.3 var(--font-mono);
+  overflow-wrap: anywhere;
+  background: transparent;
+  border: 0;
+  padding: 0;
+}
+.controls {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-3);
+  max-width: 100%;
+}
+.keyNote {
+  max-width: 60ch;
+  font: var(--fs-xs) / 1.45 var(--font-mono);
+  color: var(--ink-muted);
+}
+.buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+}
+.bumpNote {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  max-width: 62ch;
+  font: var(--fs-xs) / 1.45 var(--font-mono);
+  color: var(--ink-muted);
+}
+.bumpNote:empty {
+  display: none;
+}

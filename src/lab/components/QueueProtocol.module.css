@@ -1,0 +1,58 @@
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
+}
+.lede {
+  max-width: 76ch;
+  margin: 0;
+  font: var(--fs-sm) / 1.5 var(--font-mono);
+  color: var(--ink-muted);
+}
+.cols {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  gap: var(--space-5);
+}
+.col {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-3);
+  min-width: 0;
+}
+.col > * {
+  max-width: 100%;
+}
+.editor {
+  width: 100%;
+  font-family: var(--font-mono);
+}
+.verdict {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0;
+  font: var(--fs-xs) / 1.5 var(--font-mono);
+}
+.reason {
+  overflow-wrap: anywhere;
+  color: var(--ink-muted);
+}
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+}
+.problem {
+  margin: 0;
+  font: var(--fs-xs) / 1.5 var(--font-mono);
+  color: var(--warn-ink);
+}
+@media (max-width: 900px) {
+  .cols {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

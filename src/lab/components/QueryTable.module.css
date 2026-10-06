@@ -1,0 +1,21 @@
+.key {
+  min-width: 12rem;
+  max-width: 26rem;
+  font-weight: 600;
+}
+.keyText,
+.url {
+  display: block;
+}
+.keyText {
+  overflow-wrap: anywhere;
+}
+.url {
+  font-weight: 400;
+  font-size: var(--fs-2xs);
+  color: var(--ink-muted);
+  overflow-wrap: anywhere;
+}
+.none {
+  color: var(--ink-muted);
+}

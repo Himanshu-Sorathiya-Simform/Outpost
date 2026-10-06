@@ -1,0 +1,30 @@
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+  gap: var(--space-1) var(--space-4);
+}
+.wide {
+  grid-column: 1 / -1;
+}
+.prob {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+.range {
+  flex: 1;
+  min-width: 0;
+  height: var(--ctl-h-sm);
+  margin: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+.probNumber {
+  flex: none;
+  width: 6.5rem;
+}
+.id {
+  grid-column: 1 / -1;
+  font: var(--fs-xs) / 1.4 var(--font-mono);
+  color: var(--ink-muted);
+}

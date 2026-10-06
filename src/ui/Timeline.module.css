@@ -1,0 +1,194 @@
+.none {
+  padding: var(--space-3);
+  font: var(--fs-sm) / 1.4 var(--font-mono);
+  color: var(--ink-muted);
+}
+
+/* ─── Timeline ─── */
+.timeline {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.item {
+  --tone: var(--ink);
+  --tone-ink: var(--ink);
+  position: relative;
+  padding: 0 0 var(--space-4) 2rem;
+}
+.item::before {
+  content: '';
+  position: absolute;
+  left: 0.6rem;
+  top: 1.1rem;
+  bottom: -0.1rem;
+  width: 0;
+  border-left: var(--bw) solid var(--ink);
+}
+.item:last-child::before {
+  display: none;
+}
+.accent {
+  --tone: var(--accent);
+  --tone-ink: var(--accent-ink);
+}
+.ok {
+  --tone: var(--ok);
+  --tone-ink: var(--ok-ink);
+}
+.warn {
+  --tone: var(--warn);
+  --tone-ink: var(--warn-ink);
+}
+.error {
+  --tone: var(--error);
+  --tone-ink: var(--error-ink);
+}
+.info {
+  --tone: var(--info);
+  --tone-ink: var(--info-ink);
+}
+.node {
+  position: absolute;
+  left: 0;
+  top: 0.15rem;
+  display: grid;
+  place-items: center;
+  width: 1.2rem;
+  height: 1.2rem;
+  color: var(--paper-raised);
+  background: var(--tone-ink);
+  border: var(--bw) solid var(--ink);
+}
+:root[data-theme='dark'] .node {
+  color: var(--paper);
+  background: var(--tone);
+}
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-1) var(--space-3);
+}
+.title {
+  font: 650 var(--fs-md) / 1.4 var(--font-mono);
+}
+.time {
+  font: var(--fs-xs) / 1.4 var(--font-mono);
+  color: var(--ink-muted);
+}
+.meta {
+  margin-left: auto;
+  font: var(--fs-xs) / 1.4 var(--font-mono);
+  color: var(--ink-muted);
+}
+.detail {
+  margin-top: var(--space-1);
+  font-size: 1rem;
+  line-height: 1.45;
+  color: var(--ink-muted);
+}
+
+/* ─── LogList ─── */
+.log {
+  container-type: inline-size;
+  overflow: auto;
+  background: var(--paper-sunk);
+  border: var(--bw) solid var(--ink);
+  font: var(--fs-xs) / 1.55 var(--font-mono);
+}
+.lines {
+  margin: 0;
+  padding: var(--space-1) 0;
+  list-style: none;
+}
+.line {
+  display: grid;
+  grid-template-columns: 6.5rem 2.6rem minmax(0, auto) 1fr;
+  grid-template-areas: 'clock code source msg';
+  gap: 0 var(--space-3);
+  padding: 1px var(--space-3);
+  border-left: 3px solid transparent;
+}
+.line:hover {
+  background: var(--accent-wash);
+}
+.clock {
+  grid-area: clock;
+  color: var(--ink-muted);
+  font-variant-numeric: tabular-nums;
+}
+.code {
+  grid-area: code;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  white-space: pre;
+}
+.source {
+  padding: 0 0.4em;
+  font-size: var(--fs-2xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  border: var(--bw-thin) solid var(--rule);
+  grid-area: source;
+  align-self: start;
+  margin-top: 0.15em;
+}
+.msg {
+  grid-area: msg;
+  display: flex;
+  flex-direction: column;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.sub {
+  color: var(--ink-muted);
+}
+.lv_debug .code,
+.lv_debug .msg {
+  color: var(--ink-muted);
+}
+.lv_ok .code {
+  color: var(--ok-ink);
+}
+.lv_warn {
+  border-left-color: var(--warn);
+}
+.lv_warn .code {
+  color: var(--warn-ink);
+}
+.lv_error {
+  border-left-color: var(--error);
+  background: var(--error-wash);
+}
+.lv_error .code {
+  color: var(--error-ink);
+}
+
+/*
+ * In a narrow log (a phone, a side column) the message would get a sliver between the metadata
+ * columns. Put the metadata on its own line and give the message the full width.
+ */
+@container (max-width: 34rem) {
+  .line {
+    grid-template-columns: auto auto 1fr;
+    grid-template-areas:
+      'clock code source'
+      'msg msg msg';
+    gap: 0 var(--space-2);
+    padding-block: 3px;
+  }
+  .ms {
+    display: none;
+  }
+  .source {
+    justify-self: start;
+  }
+  .msg {
+    padding-left: 0;
+  }
+}
