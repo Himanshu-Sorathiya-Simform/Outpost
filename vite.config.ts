@@ -1,8 +1,10 @@
 /// <reference types="vitest/config" />
 import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { injectServiceWorker, requireShellUrls, shellUrls } from './scripts/sw-inject.ts'
 
 const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')) as { version: string }
 
@@ -33,8 +35,33 @@ function versionJson(): Plugin {
   }
 }
 
+/**
+ * Turns public/sw.js into the worker that ships: after the bundle is written, the build id and the list of shell files are
+ * written into dist/sw.js. Every build therefore produces different worker bytes, so a deploy is a new worker version to the
+ * browser. See scripts/sw-inject.ts for why that has to happen inside the file. Not used by the dev server.
+ */
+function serviceWorker(): Plugin {
+  let outDir = ''
+  return {
+    name: 'outpost:service-worker',
+    apply: 'build',
+    configResolved(config) {
+      outDir = resolve(config.root, config.build.outDir)
+    },
+    // Reads the finished files from disk rather than the bundle object: index.html is only emitted late in the build.
+    closeBundle() {
+      const worker = resolve(outDir, 'sw.js')
+      const page = resolve(outDir, 'index.html')
+      if (!existsSync(worker) || !existsSync(page)) return
+      const readText = (url: string): string | undefined => (existsSync(resolve(outDir, `.${url}`)) ? readFileSync(resolve(outDir, `.${url}`), 'utf8') : undefined)
+      const urls = requireShellUrls(shellUrls(readFileSync(page, 'utf8'), readText))
+      writeFileSync(worker, injectServiceWorker(readFileSync(worker, 'utf8'), { buildId: BUILD_ID, urls }))
+    },
+  }
+}
+
 export default defineConfig({
-  plugins: [react(), versionJson()],
+  plugins: [react(), versionJson(), serviceWorker()],
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
@@ -60,7 +87,7 @@ export default defineConfig({
   },
   test: {
     environment: 'node',
-    include: ['src/**/*.test.{ts,tsx}', 'shared/**/*.test.ts', 'server/**/*.test.ts'],
+    include: ['src/**/*.test.{ts,tsx}', 'shared/**/*.test.ts', 'server/**/*.test.ts', 'scripts/**/*.test.ts'],
     testTimeout: 20_000,
   },
 })

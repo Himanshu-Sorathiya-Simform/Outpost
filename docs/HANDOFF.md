@@ -1,0 +1,149 @@
+# Handoff: Outpost PWA learning project
+
+Living context document. Read this first in a new session, then `docs/LEARNING.md` for the exercise being worked on. It is updated at the end of every phase (see "How to update this file"). Last updated: Exercise 2 implemented and checked, waiting for the user's browser check and commit approval (2026-10-09).
+
+## 1. What this project is
+
+Outpost is a finished React 19 + TypeScript website (field-station dispatch log) with a small Node/Express backend and a "Lab" section that makes caching, updates, sync and errors observable. It contains **no PWA layer**. The user is learning PWAs by writing that layer themselves, with Claude doing the implementation and teaching.
+
+The sixteen exercises are in `docs/LEARNING.md`. Reference material: `docs/CONTRACTS.md` (URL map, headers, outbox and push formats, message protocol, chaos presets), `docs/ARCHITECTURE.md` (spec and conventions), `docs/STATUS.md` (what exists; note its claim that CONTRACTS.md and LEARNING.md were never written is stale, they exist), `README.md`.
+
+What Claude may write: `public/sw.js` (and other `public/` files), `public/manifest.webmanifest`, `src/pwa/*`, and the `<link>` hooks in `index.html`. What stays untouched unless a side effect forces it (then flag it and ask): `shared/`, `server/`, the website under `src/features`, `src/shell`, `src/lib`, `src/ui`, and the Lab under `src/lab`.
+
+## 2. How the user wants to work (standing rules)
+
+The user runs the server and the browser. Claude edits files and may make requests with curl.
+
+- `npm run pwa` is running on `http://localhost:4000` and is the only server used for testing. Never test on `:5173` (a different origin, a separate registration).
+- Claude never rebuilds `dist/` itself unless asked. It tells the user when to rebuild: run `npx vite build` in a second terminal (the server reads `dist/` on every request; no restart). Every change to `public/sw.js`, `src/pwa/*` or `src/` needs a rebuild. `dist/` is gitignored.
+- Browser: Chrome with DevTools (Application tab).
+- One exercise at a time, started only when the user says so ("start ex1", "start ex2").
+
+### The three phases of each exercise
+
+1. **Briefing** (no code, no commit): what to do, concepts touched, pages and Lab instruments affected, the site's current behaviour before the change (every step and scenario, with Lab and DevTools), and when to rebuild.
+2. **Implementation**: implement beyond the doc (check other callers, the store, observers, `index.html`, side effects). Summarise what changed and how it wires up. Then replay every scenario as before/after, naming the code or concept responsible, plus new scenarios that only exist because of the new feature, plus a Lab walk-through. One commit.
+3. **Break it**: the doc's break-it cases plus Claude's own, with pitfalls, built as deliberate breakage in its own commit. After the user has tested, revert it (only after the user approves) so the next exercise starts from the clean implementation.
+
+The docs are a floor, not a ceiling. Add scenarios and edge cases. Where Claude cannot be sure of a browser's behaviour, say so ("you confirm") and ask for the result instead of guessing.
+
+### Format rules for scenario write-ups
+
+- Every scenario is numbered, in **one flat list** (never split into modules or groups).
+- Every scenario has the exact steps to reproduce: the URL, the exact Lab page and plate or button (for example "Lab → Chaos → Presets → All clear", never just "the simulator"), what to click or type, and what to read afterwards (UI, Lab plate, DevTools panel).
+- Repeat the full steps in both the "before" and the "after" of each scenario.
+- Say when to rebuild. Include a debug guide for UI + Lab + DevTools.
+- Do not ask the user to report per-scenario results when they have said everything matched. **The user's word "Continue" means everything went as expected and to move to the next step. They will say if anything differed.** Asking for confirmation they have already given wastes their time.
+- Open handover messages with one line naming the audience when the thing produced is for someone else.
+
+### Commit rules
+
+- Never add a `Co-Authored-By` line (this overrides the default attribution reminder).
+- Commit messages carry a descriptive summary in the body of what was done and why, for later reference.
+- Commit only when the user asks. Do not revert a break commit until they approve (or say "Continue" after testing).
+- Per exercise: one implementation commit, one break commit, one revert of the break commit.
+
+## 3. Environment facts
+
+- Repo: `/home/himanshu.sorathiya@simform.dom/Downloads/WebDev/Projects/Sessions/PWA`, branch `main`. Node 24. Scratchpad for temp files is under `/tmp/claude-369203610/.../scratchpad`.
+- Commands: `npm run typecheck`, `npm run lint` (ignores `public/`), `npm test` (vitest, includes `src/**/*.test.ts`), `npm run pwa`, `npx vite build`, `npm run release` (bumps the version, rebuilds).
+- Claude's own checks after code changes: typecheck, lint, full tests. A build into a scratch directory (`npx vite build --outDir <scratch> --emptyOutDir`) can prove `public/` files are emitted without touching the user's `dist/`.
+- Server inspection from the shell (all under `/api/_lab/*`, never chaos'd): `GET /api/_lab/log?since=0` (request log, ring of 500; shows `dest`, `tab`, `notes`, status 0 = socket dropped), `GET /api/_lab/state`, `GET /api/_lab/chaos`, `POST /api/_lab/chaos/preset/all-clear`, `POST /api/_lab/reset`.
+- Test baseline: 615 tests at the start, 639 after exercise 1 (45 files), 672 after exercise 2 (47 files; `scripts/**/*.test.ts` is now in the vitest include).
+- **Never stop processes with `pkill -f` or `killall` by pattern.** The user's `npm run pwa` server (`tsx server/index.ts`) matches the same pattern as any scratch server and was killed once this way. If a scratch server is needed, start it on another port with `& echo $!` and kill that exact PID, or prefer the vitest sandbox. After any server work, check `curl localhost:4000/api/ping`. If the user's server was lost, they restart with `npm run pwa` (it also rebuilds `dist/`).
+- Product conventions in `src/`: strict TS, no `any`, no `@ts-ignore`, no `console.log`, no emoji, `import type` for types. `public/` is outside lint and type checks, is not bundled and cannot import `shared/*.ts`.
+
+## 4. Progress
+
+| # | Exercise | Status | Commits |
+|---|---|---|---|
+| 1 | Register the worker, read its lifecycle | **Done**, break-it done and reverted | `0d61811` impl, `ee3f07a` break, `b4238cd` revert |
+| 2 | Install, activate, precache the shell | **Implemented, checked in code and over real HTTP; awaiting the user's browser check, then commit** | |
+| 3 | Cache-only handbook, `delta` miss | | |
+| 4 | Cache-first media and assets | | |
+| 5 | Network-first with timeout | | |
+| 6 | Stale-while-revalidate, `cache-updated` | | |
+| 7 | Network-only done properly | | |
+| 8 | Offline navigation, chunks | | |
+| 9 | Versioned caches, cleanup | | |
+| 10 | The update flow | | |
+| 11 | Background Sync outbox | | |
+| 12 | Push, `notificationclick` | | |
+| 13 | Badge and consistency | | |
+| 14 | Periodic Background Sync | | |
+| 15 | Manifest, install, share, shortcuts | | |
+| 16 | Break it on purpose, handle it | | |
+
+Git log: `cde90b4` initial project setup → `0d61811` ex1 → `ee3f07a` ex1 break → `b4238cd` revert of the break. The tree at `b4238cd` is identical to `0d61811`.
+
+## 5. What exists now
+
+### Exercise 2: install, activate, precache the shell (uncommitted)
+
+Design decisions, and why:
+- **The precache is the app shell only, 18 files (about 1.33 MB):** what `/index.html` points at (entry script, four preloaded chunks, two stylesheets) plus the 11 font files those stylesheets point at. The lazy route chunks (about 85 more files) are deliberately **not** precached. First plan was to precache all ~104 hashed files; the user objected ("how can we go in fail mode during offline?") and was right: Exercise 8 needs uncached routes to show "Loading failed" offline, and Stale chunks only bites on files not cached. Exercise 8 adds the route chunks.
+- **`public/sw.js` is a template.** Two tokens (`'__BUILD_ID__'` and `/* __PRECACHE_URLS__ */ []`) are replaced in `dist/sw.js` after every build by the `outpost:service-worker` plugin in `vite.config.ts` (`closeBundle`, reads the finished `index.html` and CSS from disk). Reason: the browser decides "new worker?" by comparing `sw.js` bytes; if the list and build id lived elsewhere, a deploy would leave `sw.js` identical and nothing would ever update. Consequence: **every `npx vite build` is a new worker version**, so rebuilds now exercise the update flow (skipWaiting makes it take over at once until Exercise 10). Under `npm run dev` the tokens are not replaced (empty list, shell only).
+- `scripts/sw-inject.ts`: pure `injectServiceWorker()` (throws if a token is missing, so a broken template fails the build) and `shellUrls()`. Tests in `scripts/sw-inject.test.ts` (11) and `scripts/sw.test.ts` (22, runs the real `public/sw.js` in a `node:vm` sandbox with fake `caches`/`fetch`/`self`). `vite.config.ts` imports `./scripts/sw-inject.ts` with the extension and `tsconfig.node.json` got `allowImportingTsExtensions` (without it Vite warns about native config loading on every build).
+- Worker behaviour: `install` fetches `/index.html` once (`Accept: text/html`, `cache: 'reload'`) and stores it under `/`, `/index.html` and `/offline` in cache **`shell-v1`**, fetches the 18 files (`cache: 'reload'`), validates everything first (status 200; HTML only where HTML is expected, so a captive portal cannot be stored as a script), then writes; any failure rejects the install; `skipWaiting()` runs after success. `activate` calls `clients.claim()`. `fetch`: non-GET, cross-origin, and anything not listed is left to the browser; a navigation to an app route (no extension, not `/api/` or `/media/`) is network-first with the stored `/index.html` as fallback on failure (no timeout yet, so Lie-fi hangs: Exercise 5/8); a precached `/assets/*` URL is cache-first. `message` `get-version` replies `sw-version` with the build id and cache names (extra, makes two worker versions distinguishable from Lab -> Worker -> Send get-version).
+- Doc discrepancy found: LEARNING.md Exercise 2 says an offline reload paints the shell but its Do list has no `fetch` handler, which cannot work. A minimal handler was added so the exercise's "Done when" holds. Exercises 4 and 8 refine it.
+- Expected behaviour offline after Exercise 2: reload of `/log` paints the app frame, the route area shows "This screen did not load" (its lazy chunk is not cached), data screens fail on their API calls. Not served offline: favicon, icons, `/version.json`, all `/api/*`.
+- Verified without a browser: typecheck, lint, 672 tests; a scratch build has no tokens left, the build id baked in, 18 entries, no lazy chunks, and two builds of the same source give different `sw.js` bytes; the built worker's install was run against a real server (scratch instance on :4010) over HTTP: OK (21 entries), fails with 404 under Stale chunks and under Hard down, fine under the HTTP cache trap profile.
+
+### Exercise 1: what exists (commit `0d61811`)
+
+Files:
+
+- `public/sw.js`: inert worker, empty `install` and `activate` listeners, no `fetch`. Scope `/` because it is served from the root.
+- `src/pwa/sw-state.ts`: `describeSlots(slots)`, a pure function. Priority installing, then waiting, then active (`activating` stays `activating`, `activated` becomes `active`), else `none`. This is the same order Lab → Worker's comparison plate uses (`src/lab/observers/worker-compare.ts`), so the store and the plate agree.
+- `src/pwa/registration.ts`:
+  - `register()`: returns quietly when `serviceWorker` is missing; registers `/sw.js` with default options; `watch(reg)`; on rejection, re-syncs the store from the browser (does not invent an `error` state) and rethrows.
+  - `watch(reg)`: `updatefound` once per registration, `statechange` once per worker, guarded by WeakSets so repeat `register()` calls (boot, then Lab → Errors "Call registration.register") do not double listeners. A `redundant` worker triggers `syncFromBrowser()` because a failed first install removes the registration.
+  - `findRegistration()`: `getRegistrations()` each time, longest scope containing `location.href`, else the first. Not a module variable, because a reload empties module state.
+  - `unregister()`: finds, unregisters, sets the store to none. `checkForUpdate()`: `reg.update()`; the bare `TypeError` it raises for an unreachable script is rethrown as a `NetworkError` DOMException so the page files it as kind `network`; nothing registered gives `InvalidStateError`; no API gives `NotSupportedError`.
+  - `syncFromBrowser()` and `startBrowserSync()`: re-read on window focus and `visibilitychange`, because the browser raises no event for DevTools Unregister or Clear site data.
+  - `applyUpdate()` is **still a stub** on purpose (exercise 10).
+- `src/pwa/boot.ts`: `startBrowserSync()`, wait for the window `load` event (so a later precaching worker does not compete with the first paint), then `registration.register()`. `boot` is called through `callSeam('boot', ..., { quiet: true })` from `src/main.tsx`; errors are filed silently in Lab → Errors. One `TODO(you)` remains for the other initial state reads (push subscription, queue, periodic tags).
+- `src/pwa/registration.test.ts`: 24 tests against a faked `navigator.serviceWorker`.
+
+Deliberately not done in exercise 1 (expected, not bugs):
+- `updateAvailable` stays `false`. With a waiting worker behind a controlled page, Lab → Worker shows an expected Mismatch on that row until exercise 10.
+- No `clients.claim()`, so the page that registers the worker is uncontrolled until its next load (exercise 2). The strip shows an "Uncontrolled" marker.
+- `registration.register` seam tile only moves when something calls it through `callSeam` (the Lab → Errors → "Call registration.register" button). Boot calls it directly, as the doc says.
+
+## 6. Things learned along the way (browser and app behaviour)
+
+Confirmed by the user in Chrome:
+
+- A tab open before a rebuild keeps running the old bundle (no registration code) and its lazy chunks 404, because `vite build` deletes old hashed files. Reload it.
+- First load after registering: "Not controlling this page"; the next normal reload: controlled; Shift-reload: uncontrolled again while the registration stays.
+- The browser's `sw.js` update fetches do **not** appear in the page's DevTools Network panel. They show in the server request log (Lab → Network → Server, or `GET /api/_lab/log`) with `dest=serviceworker` and no tab id: 200 when the bytes changed, 304 (`etag-304`) when not, status 0 under Hard down. The browser also re-checks `sw.js` on navigations within scope, not only on `registration.update()`.
+- Hard down destroys every socket except `/api/_lab/*`, so a lazy Lab page not visited beforehand fails with "This screen did not load", and the Chaos page's own **All clear** button may be unreachable. Recovery: `curl -X POST http://localhost:4000/api/_lab/chaos/preset/all-clear`. Habit: visit the Lab pages needed (Chaos, Errors, Network) before turning chaos on. The error centre is in memory and is lost on reload.
+- A failed update check under Hard down originally filed kind `unknown` (bare TypeError); fixed in `checkForUpdate` as described above.
+- Error classification: `callSeam` turns a thrown DOMException name into a kind: `NotSupportedError` → unsupported, `NotAllowedError`/`SecurityError` → permission, `QuotaExceededError` → quota, `AbortError` → aborted, `NetworkError` → network, other names (such as `InvalidStateError`) and unrecognised TypeErrors → unknown.
+- Break-it findings (all matched predictions): a worker script that does not parse makes `register()` reject; a first install that fails removes the registration after `register()` resolved; a failed update leaves the old worker active; a naive "registered, active" store write is wrong and the focus/visibility sync would hide that bug in a real app; a `/lab/` scope leaves `/log` uncontrolled and control is fixed per page load; treating "installed" as an update on a first install raises a pointless toast and a Mismatch; an `unregister()` that does not reset the store leaves the strip claiming a registration; awaiting `navigator.serviceWorker.ready` before registering never resolves on a first visit and the `boot` seam tile never appears (a seam call is logged only when it settles).
+
+Exercise 2 design lesson: do not precache what later exercises need to fail. Precache is a decision about which failures you keep.
+
+Open observation carried forward: `registration.register()` failures (syntax or evaluation error) surface as a bare `TypeError` and are filed as kind `unknown`. The same classification gap was fixed for `update()` only. A follow-up commit could map it; the user has not asked for it yet.
+
+## 7. Notes for the next exercise (Exercise 3: cache-only handbook, the `delta` miss)
+
+From `docs/LEARNING.md` and `docs/CONTRACTS.md`:
+
+- In `install`, fetch `/api/handbook`, read the chapter slugs, and precache `/api/handbook` plus each `/api/handbook/<slug>` (8 chapters), and `/api/bench/cache-only/alpha`, `beta`, `gamma`. **Leave `delta` out on purpose.** Keys must be exactly those URLs (no query string, no trailing slash, no absolute URL on another origin): the handbook page reads them with `caches.match(url)` over all caches.
+- In `fetch`, for those URLs answer from `caches.match(request)` and never touch the network. On a miss answer **504** with header `X-SW-Source: cache-miss` and a JSON error body of the shape in CONTRACTS.md section 5.1 (not `Response.error()`, not a fall-through to the network).
+- Exercise 2's precache validates before writing and fails the whole install on any bad file. The handbook precache can reuse `fetchForPrecache`; decide whether handbook files go into `shell-v1` or their own bucket (Exercise 9 versions caches by prefix, so a separate `api-v1`/`handbook-v1` is cleaner; `docs/LEARNING.md` Exercise 9 names `shell-v1`, `api-v1`, `media-v1`, `precache-v1`).
+- Because `sw.js` bytes change with every build (build-id injection), the handbook files will be re-precached on every rebuild. `fetch` of the API files must go through the same `cache: 'reload'` + validation path (JSON content type, 200, parses) so a Captive portal or Corrupt JSON chaos rule cannot poison the precache.
+- Bench Lab checks: Lab -> Bench -> Scenarios -> "Never precached" (runs on `delta`), Lab -> Bench -> cache-only card "Precached?" list, Lab -> Caches Precheck (alpha/beta/gamma, `/api/handbook`, eight chapters).
+- Break-it ideas from the doc: Lab -> Server -> Release simulator -> Bump handbook edition (cache-only copy goes stale, nothing fixes it until a new worker version and install); Bench Scenarios -> Server down (cache-only still answers).
+
+## 8. How to update this file
+
+At the end of each phase (briefing needs no update; implementation, break and revert do):
+
+1. Move the exercise's status in the table in section 4 and add its commit hashes.
+2. Replace section 5 with the current set of PWA files and design decisions (keep older exercises' summaries short, one paragraph each, under a "Previous exercises" heading once section 5 grows).
+3. Add new browser or app behaviours the user confirmed, and findings from the break-it phase, to section 6.
+4. Rewrite section 7 for the next exercise.
+5. Update the test baseline and the "Last updated" line at the top; record any new standing rule the user gave in section 2.
+6. Include this file in the same commit as the phase it describes (unless the user says otherwise).
