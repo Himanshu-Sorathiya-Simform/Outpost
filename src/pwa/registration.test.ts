@@ -215,7 +215,12 @@ describe('registration.checkForUpdate', () => {
     reg.update = () => Promise.reject(new TypeError("Failed to update a ServiceWorker for scope ('http://localhost:4000/'): An unknown error occurred when fetching the script."))
     installFakeContainer([reg])
 
-    const error = await registration.checkForUpdate().catch((e: unknown) => e)
+    let error: unknown
+    try {
+      await registration.checkForUpdate()
+    } catch (thrown) {
+      error = thrown
+    }
 
     expect(error).toBeInstanceOf(DOMException)
     expect(error).toMatchObject({ name: 'NetworkError' })

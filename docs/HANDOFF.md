@@ -1,6 +1,6 @@
 # Handoff: Outpost PWA learning project
 
-Living context document. Read this first in a new session, then `docs/LEARNING.md` for the exercise being worked on. It is updated at the end of every exercise (see "How to update this file"). Last updated: Exercise 2 committed; the break-it phase was dropped and its commits removed from history (2026-10-09).
+Living context document. Read this first in a new session, then `docs/LEARNING.md` for the exercise being worked on. It is updated at the end of every exercise (see "How to update this file"). Last updated: Exercise 3 validated by the user and committed (2026-10-09).
 
 ## 1. What this project is
 
@@ -33,6 +33,7 @@ The user asked to skip all "breaker" code and the break-it phase. Do not write d
 - Each scenario is **one interleaved sequence**: every step is immediately followed by "You see:" (what appears, on which Lab page, plate or DevTools panel) and "Why:" (the code or browser concept responsible). Never list all the steps first and the expected results in a separate block; the user cannot tell which step produced which result.
 - **Every command is complete and copy-pasteable, every time:** the full `localStorage.setItem('key', 'value')` line, the full Console expression, the full terminal command. Never "set the flag" or "set no-validation".
 - Exact UI path every time: the URL and the exact Lab page and plate or button (for example "Lab → Chaos → Presets → All clear", never just "the simulator").
+- **The explanation style the user confirmed works (2026-10-09, "keep that thing up"):** explain the WHOLE file, for a total beginner, in this order: (1) a short plain description of the file, with terms shown through real values (a real request, a real response with status/headers/body, a real cache box); (2) the cast: the actual files, URLs and sizes, named for real; (3) a before/after listing of what is stored; (4) **an indented call tree of who calls whom** (event -> function -> helpers, with counts), the single most useful part; (5) one real value followed through the helpers step by step; (6) real requests traced through the decision logic. Never a table for explaining code. Failures only inline where real.
 - **Explain, do not just list.** Explain every file and every change in it. For each guard in the code, name the failure it prevents and how the code prevents it. Never describe a failure without showing how this project's code is safe from it.
 - Say when to rebuild. Include a debug guide for UI + Lab + DevTools.
 - Do not ask the user to report per-scenario results when they have said everything matched. **The user's word "Continue" means everything went as expected and to move to the next step. They will say if anything differed.** Asking for confirmation they have already given wastes their time. Mark only genuinely unknowable browser behaviour as "you confirm", and sparingly.
@@ -51,7 +52,7 @@ The user asked to skip all "breaker" code and the break-it phase. Do not write d
 - Commands: `npm run typecheck`, `npm run lint` (ignores `public/`), `npm test` (vitest, includes `src/**/*.test.ts`), `npm run pwa`, `npx vite build`, `npm run release` (bumps the version, rebuilds).
 - Claude's own checks after code changes: typecheck, lint, full tests. A build into a scratch directory (`npx vite build --outDir <scratch> --emptyOutDir`) can prove `public/` files are emitted without touching the user's `dist/`.
 - Server inspection from the shell (all under `/api/_lab/*`, never chaos'd): `GET /api/_lab/log?since=0` (request log, ring of 500; shows `dest`, `tab`, `notes`, status 0 = socket dropped), `GET /api/_lab/state`, `GET /api/_lab/chaos`, `POST /api/_lab/chaos/preset/all-clear`, `POST /api/_lab/reset`.
-- Test baseline: 615 tests at the start, 639 after exercise 1 (45 files), 675 after exercise 2 (47 files; `scripts/**/*.test.ts` is now in the vitest include).
+- Test baseline: 615 tests at the start, 639 after exercise 1 (45 files), 675 after exercise 2 (47 files; 715 after exercise 3; `scripts/**/*.test.ts` is now in the vitest include).
 - **Never stop processes with `pkill -f` or `killall` by pattern.** The user's `npm run pwa` server (`tsx server/index.ts`) matches the same pattern as any scratch server and was killed once this way. If a scratch server is needed, start it on another port with `& echo $!` and kill that exact PID, or prefer the vitest sandbox. After any server work, check `curl localhost:4000/api/ping`. If the user's server was lost, they restart with `npm run pwa` (it also rebuilds `dist/`).
 - Product conventions in `src/`: strict TS, no `any`, no `@ts-ignore`, no `console.log`, no emoji, `import type` for types. `public/` is outside lint and type checks, is not bundled and cannot import `shared/*.ts`.
 
@@ -61,7 +62,7 @@ The user asked to skip all "breaker" code and the break-it phase. Do not write d
 |---|---|---|---|
 | 1 | Register the worker, read its lifecycle | **Done** (on `origin/main`) | `0d61811` |
 | 2 | Install, activate, precache the shell | **Done**, validated by the user in 16 browser scenarios; not pushed | `f686a52` |
-| 3 | Cache-only handbook, `delta` miss | | |
+| 3 | Cache-only handbook, `delta` miss | **Done**, validated by the user in 16 browser scenarios; not pushed | the commit titled `ex3: ...` (a commit cannot contain its own hash; find it with `git log --oneline --grep=ex3`) |
 | 4 | Cache-first media and assets | | |
 | 5 | Network-first with timeout | | |
 | 6 | Stale-while-revalidate, `cache-updated` | | |
@@ -79,6 +80,16 @@ The user asked to skip all "breaker" code and the break-it phase. Do not write d
 Git log: `cde90b4` initial project setup → `0d61811` ex1 → `f686a52` ex2.
 
 ## 5. What exists now
+
+### Exercise 3: cache-only handbook and the `delta` miss (commit titled `ex3: ...`)
+
+- `public/sw.js` now has two buckets: `shell-v1` (shell and hashed shell files) and **`precache-v1`** (API data stored at install and answered cache-only). `precache()` downloads and validates everything first (shell, shell files, handbook, bench), opens the buckets only after that (a failed install leaves no bucket at all, not even an empty one; the exercise 2 version left an empty `shell-v1`), then writes.
+- Precached API set: `/api/handbook`, every `/api/handbook/<slug>` named by the index (8), and `/api/bench/cache-only/{alpha,beta,gamma}`. **`delta` is deliberately absent.** Validation: status 200, `application/json`, the body parses as a JSON object, the index has an edition and chapters, each slug matches `^[a-z0-9-]+$`, every chapter's `slug` equals the listed one and its `edition` equals the index's, each bench entry has `strategy: 'cache-only'` and the right `key`.
+- Stored copies get `X-SW-Cached-At` (stamp at write time); the server's `X-Served-At` is kept so a stored copy shows its true age.
+- `fetch`: `isCacheOnly(pathname)` is the handbook index, `/api/handbook/*` (boundary on the slash, so `/api/handbook-archive` is not matched) and `/api/bench/cache-only/*`. GET only. Answered by `cacheOnly(url)`: exact URL (query string included, no `ignoreSearch`) looked up in `precache-v1` only; a hit is returned with `X-SW-Source: cache`, `X-SW-Strategy: cache-only`, `X-SW-Cache: precache-v1`; a miss, or an unreadable cache, is `cacheMiss()`: 504 with `X-SW-Source: cache-miss` and a JSON body in the server error shape (`code: 'unavailable'`, message, `requestId: 'sw-...'`), no `X-Served-By`. Never touches the network.
+- `.then`/`.catch` chains in code written for the exercises were replaced by async/await (install and message handlers in `sw.js`, one test). The finished website, Lab and server (37 files) were left alone.
+- Tests: `scripts/sw.test.ts` grew to 64 (API fixtures, 12 install-failure cases, stamping, edition change only via a new install, cache-only hits and misses, prefix safety, methods, unreadable cache). Verified over real HTTP against a scratch server: install OK with 12 API + 21 shell entries; fails with no bucket left under captive-portal, corrupt-json, empty-body, rate-limited, stale-chunks, hard-down; under flaky (30 percent of `/api` 500) nearly every install fails because it makes 12 API requests and there is no retry inside install.
+- Known limits: the handbook page, chapter page and Bench page are lazy route chunks, so an offline reload of `/handbook` still cannot draw the page (exercise 8); in-app navigation works once those routes were visited online. The stored handbook only changes with a new worker install, i.e. every rebuild (`npx vite build`); "Bump handbook edition" in Lab -> Server -> Release simulator leaves the stored copy at the old edition until then. A transient failure during install fails the whole install (the old worker stays); the browser retries on the next navigation or "Check for update".
 
 ### Exercise 2: install, activate, precache the shell (commit `f686a52`)
 
@@ -128,16 +139,18 @@ Exercise 2 design lesson: do not precache what later exercises need to fail. Pre
 
 Open observation carried forward: `registration.register()` failures (syntax or evaluation error) surface as a bare `TypeError` and are filed as kind `unknown`. The same classification gap was fixed for `update()` only. A follow-up commit could map it; the user has not asked for it yet.
 
-## 7. Notes for the next exercise (Exercise 3: cache-only handbook, the `delta` miss)
+## 7. Notes for the next exercise (Exercise 4: cache-first for media and assets)
 
 From `docs/LEARNING.md` and `docs/CONTRACTS.md`:
 
-- In `install`, fetch `/api/handbook`, read the chapter slugs, and precache `/api/handbook` plus each `/api/handbook/<slug>` (8 chapters), and `/api/bench/cache-only/alpha`, `beta`, `gamma`. **Leave `delta` out on purpose.** Keys must be exactly those URLs (no query string, no trailing slash, no absolute URL on another origin): the handbook page reads them with `caches.match(url)` over all caches.
-- In `fetch`, for those URLs answer from `caches.match(request)` and never touch the network. On a miss answer **504** with header `X-SW-Source: cache-miss` and a JSON error body of the shape in CONTRACTS.md section 5.1 (not `Response.error()`, not a fall-through to the network).
-- Exercise 2's precache validates before writing and fails the whole install on any bad file. The handbook precache can reuse `fetchForPrecache`; decide whether handbook files go into `shell-v1` or their own bucket (Exercise 9 versions caches by prefix, so a separate `api-v1`/`handbook-v1` is cleaner; `docs/LEARNING.md` Exercise 9 names `shell-v1`, `api-v1`, `media-v1`, `precache-v1`).
-- Because `sw.js` bytes change with every build (build-id injection), the handbook files will be re-precached on every rebuild. `fetch` of the API files must go through the same `cache: 'reload'` + validation path (JSON content type, 200, parses) so a Captive portal or Corrupt JSON chaos rule cannot poison the precache.
-- Bench Lab checks: Lab -> Bench -> Scenarios -> "Never precached" (runs on `delta`), Lab -> Bench -> cache-only card "Precached?" list, Lab -> Caches Precheck (alpha/beta/gamma, `/api/handbook`, eight chapters).
-- Failure scenarios to cover in the explanation (and to provoke with the Lab where possible): Bump handbook edition leaves the cache-only copy stale until a new worker installs; Bench Scenarios -> Server down still answers `alpha` from the cache; a handbook file answered 404 or HTML during install must fail the install, not be stored.
+- `GET /media/*`: look in a media cache (name it `media-v1`), on a miss go to the network and store only a 200 whose `Content-Type` starts with `image/`. Cap the cache: after each `put`, trim to a fixed number of entries, oldest first (new dispatches keep arriving).
+- `GET /assets/*`: same idea into a separate runtime cache. Note this now interacts with exercise 2: shell files are already precached in `shell-v1` and served by `fromPrecache`; lazy route chunks are not. Runtime cache-first for `/assets/*` would store each route chunk the first time it is visited, which makes visited routes work offline and changes the exercise 8 failure story ("never visited AND offline fails"); decide explicitly and say so.
+- `GET /api/bench/cache-first/:key`: same rule; it is the route that shows the cost of cache-first (STALE by N after a bump, Hits + stays 0).
+- Leave `/favicon.svg`, `/icons/*`, `/version.json` alone (unhashed: cache-first would never update them; `/version.json` under cache-first hides every deploy).
+- Guards to explain: validate status and content type before `cache.put` (a Chaos rule on `/media/` or the Stale chunks preset would otherwise be stored and served forever); put a `clone()` and answer with the original; keep the write inside `event.waitUntil`; `cache.put` rejects non-GET.
+- To observe it the user switches Lab -> Server -> Header profile to No store (realistic profile lets the browser's HTTP cache answer and hides the worker).
+- Lab pages: Bench cache-first card (second reading "SW cache", Hits + 0, then "STALE by 1 rev" after Bump on server), Lab -> Network -> Server (no `/media/` rows on a second load of `/log`), Scenarios -> Stale after bump.
+- Exercise 3's `cacheOnly()` is a model for the stamping helpers: copy headers into a new `Response`, set `X-SW-Source` / `X-SW-Strategy` / `X-SW-Cache`, keep `X-Served-At`.
 
 ## 8. How to update this file
 
