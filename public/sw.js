@@ -11,8 +11,11 @@
 // are left to the network on purpose: cache first would serve them unchanged forever.
 // Exercise 5: network first, with a 3 second timeout, for GET /api/dispatches, /api/dispatches/<id>, /api/inbox/summary and /api/digest.
 // A good answer is stored in api-v1 and returned; a failure, a timeout or an unusable answer is replaced by the last stored copy,
-// stamped X-SW-Source: fallback. Every other /api request still goes to the network. Later exercises add the strategies for the rest,
-// the offline page, versioned cleanup, the update flow, sync and push.
+// stamped X-SW-Source: fallback.
+// Exercise 6: stale while revalidate for GET /api/stations, /api/stations/<code> and /api/bench/stale-while-revalidate/:key. The stored
+// copy is answered at once and a background request checks the server; if what comes back differs (by ETag, else X-Resource-Rev),
+// it is stored and every open window is told with a cache-updated message, so the screen changes with no reload.
+// Every other /api request still goes to the network. Later exercises add the offline page, versioned cleanup, the update flow, sync and push.
 //
 // Plain script, no import: this file is copied to dist/sw.js, and vite.config.ts replaces the two tokens below after each build
 // (scripts/sw-inject.ts). It has to be that way round: the browser tells a new worker from the old one by comparing bytes of this
@@ -40,9 +43,12 @@ const MEDIA_LIMIT = 30
 // How long the network gets before a stored copy is used instead. It has to stay under the page's own request timeout (Lab -> Query ->
 // Settings -> Request timeout, 10 000 ms by default), or the page gives up before the fallback arrives.
 const NETWORK_TIMEOUT_MS = 3000
-// api-v1 holds one entry per URL: every filter, every "Load more" cursor, every digest `since`. Without a cap it only grows. The
-// bench cache-first entries live in the same cache and count towards it.
-const API_LIMIT = 50
+// api-v1 holds one entry per URL: every filter, every "Load more" cursor, every digest `since`, the 11 station URLs and the bench
+// entries. Without a cap it only grows. The cap is oldest first, so a long session of dispatch pages can still push the stations out;
+// that costs one slower visit, never a wrong answer.
+const API_LIMIT = 80
+// A background revalidation that has not finished by now is abandoned, so it cannot keep the worker alive.
+const REVALIDATE_TIMEOUT_MS = 10000
 
 // The cache-only routes. The handbook page and Lab -> Caches look these URLs up by exact name, so they are stored under exactly these.
 const HANDBOOK_URL = '/api/handbook'
@@ -262,6 +268,10 @@ const CACHE_FIRST = [
 const NETWORK_FIRST_PATH = /^\/api\/(dispatches(\/[^/]+)?|inbox\/summary|digest)$/
 const NETWORK_FIRST = { readFrom: [API_CACHE], writeTo: API_CACHE, limit: API_LIMIT }
 
+// The stale-while-revalidate routes: the station list, one station (a code or an id), and the bench route for any key.
+const SWR_PATH = /^\/api\/(stations(\/[^/]+)?|bench\/stale-while-revalidate\/[^/]+)$/
+const SWR = { readFrom: [API_CACHE], writeTo: API_CACHE, limit: API_LIMIT }
+
 /** The first stored copy of the URL, with the name of the cache it was in. A cache that cannot be read counts as one that has nothing. */
 async function lookup(rule, href) {
   for (const cacheName of rule.readFrom) {
@@ -283,15 +293,17 @@ async function trim(cache, limit) {
 
 /**
  * Stores one answer. By now the page already has its response, so a failure here (a full disk, a revoked cache) must not turn into an
- * error for the page: it is logged and the next request tries again.
+ * error for the page: it is logged and the next request tries again. Says whether the write happened.
  */
 async function store(rule, url, response) {
   try {
     const cache = await caches.open(rule.writeTo)
     await cache.put(url.href, stampForStorage(response))
     if (rule.limit > 0) await trim(cache, rule.limit)
+    return true
   } catch (error) {
     console.warn(`Outpost worker: could not store ${url.pathname} in ${rule.writeTo}`, error)
+    return false
   }
 }
 
@@ -382,6 +394,80 @@ async function networkFirst(event, request) {
   throw outcome.error
 }
 
+/** Sends a message to every open window, controlled or not. It never throws: a failed notice must not break what called it. */
+async function tellPages(message) {
+  try {
+    const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true })
+    for (const client of windows) client.postMessage(message)
+  } catch (error) {
+    console.warn('Outpost worker: could not message the pages', error)
+  }
+}
+
+/** What a response says about its own version: its ETag, else the resource revision the server counts. null when it says nothing. */
+function validatorOf(response) {
+  return response.headers.get('etag') || response.headers.get('x-resource-rev')
+}
+
+/**
+ * Is the fresh answer the same data as the stored one? By validator when both have one. The status is not a clue (fetch() returns 200
+ * even when the server said 304) and neither is the body of a route that stamps the time into it (the station list carries `asOf`, which
+ * moves on every call and would make every check look like a change). Only a route with no validator at all is compared by body.
+ */
+async function sameData(stored, fresh) {
+  const a = validatorOf(stored)
+  const b = validatorOf(fresh)
+  if (a !== null && b !== null) return a === b
+  return (await stored.clone().text()) === (await fresh.clone().text())
+}
+
+/**
+ * The background half of stale while revalidate. It asks the server with cache 'no-cache', so the browser's HTTP cache cannot answer for
+ * it (under the "HTTP cache trap" profile it would, and the worker would never see a new copy). Only a good answer (the rules of
+ * tryNetwork) can replace the stored copy; every failure is ignored, logged to the pages, and leaves the stored copy as it was.
+ * When the answer is the same data nothing is written and nothing is posted: a message makes the page refetch, the refetch is answered
+ * by this same worker, which revalidates again, and a message sent every time would loop. The message goes out only after the write, so
+ * the refetch it causes finds the new copy. It never rejects.
+ */
+async function revalidate(url) {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), REVALIDATE_TIMEOUT_MS)
+  let result
+  try {
+    result = await tryNetwork(new Request(url.href, { headers: { Accept: 'application/json' }, cache: 'no-cache', signal: controller.signal }), url)
+  } finally {
+    clearTimeout(timer)
+  }
+  if (!result.good) {
+    const why = result.reason || `status-${result.response.status}`
+    await tellPages({ type: 'log', level: 'warn', message: `Background revalidation of ${url.pathname} failed (${why}); the stored copy was kept.` })
+    return
+  }
+  const current = await lookup(SWR, url.href)
+  if (current && (await sameData(current.hit, result.response))) return
+  if (await store(SWR, url, result.response)) {
+    await tellPages({ type: 'cache-updated', url: url.pathname, strategy: 'stale-while-revalidate', cacheName: API_CACHE })
+  }
+}
+
+/**
+ * Stale while revalidate. With a stored copy: answer it now and revalidate in the background inside event.waitUntil (the worker is kept
+ * alive until it finishes). With nothing stored there is nothing stale to show, so the network is waited for, stored and answered, and
+ * the same rules as network first apply to what comes back: a bad answer reaches the page as it is, a failed fetch is rethrown.
+ */
+async function staleWhileRevalidate(event, request) {
+  const url = new URL(request.url)
+  const found = await lookup(SWR, url.href)
+  if (found) {
+    event.waitUntil(revalidate(url))
+    return stamped(found.hit, 'cache', 'stale-while-revalidate', found.cacheName)
+  }
+  const result = await tryNetwork(request, url)
+  if (result.good) event.waitUntil(store(SWR, url, result.response.clone()))
+  if (result.response) return stamped(result.response, 'network', 'stale-while-revalidate', API_CACHE)
+  throw result.error
+}
+
 self.addEventListener('fetch', (event) => {
   const { request } = event
   if (request.method !== 'GET') return
@@ -398,6 +484,10 @@ self.addEventListener('fetch', (event) => {
   }
   if (NETWORK_FIRST_PATH.test(url.pathname)) {
     event.respondWith(networkFirst(event, request))
+    return
+  }
+  if (SWR_PATH.test(url.pathname)) {
+    event.respondWith(staleWhileRevalidate(event, request))
     return
   }
   // A range request wants part of a file; the stored copy is the whole file, so those go to the network.
