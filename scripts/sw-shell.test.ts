@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { requireShellUrls, shellUrls } from './sw-shell'
+import { isWebsiteSource, requireRouteChunks, requireShellUrls, routeChunkUrls, shellUrls, type ManifestEntry } from './sw-shell'
 
 describe('shellUrls', () => {
   const html = `<!doctype html><html><head>
@@ -58,5 +58,72 @@ describe('requireShellUrls', () => {
   it('is what stops the realistic failure: an index.html written in a way the extraction does not recognise', () => {
     const rewritten = `<script type=module src=/assets/index-AAA.js></script><link rel=stylesheet href=/assets/ui-BBB.css>`
     expect(() => requireShellUrls(shellUrls(rewritten, () => undefined))).toThrow(/no \/assets\/ files/)
+  })
+})
+
+describe('routeChunkUrls', () => {
+  const manifest: Record<string, ManifestEntry> = {
+    'index.html': { file: 'assets/index-AAA.js', isEntry: true, css: ['assets/index-AAA.css'] } as ManifestEntry,
+    'src/features/stations/pages/StationsPage.tsx': {
+      file: 'assets/StationsPage-S1.js',
+      src: 'src/features/stations/pages/StationsPage.tsx',
+      isDynamicEntry: true,
+      imports: ['index.html', '_ui-U1.js', '_stations-T1.js'],
+      css: ['assets/StationsPage-S1.css'],
+    },
+    'src/features/log/pages/LogPage.tsx': { file: 'assets/LogPage-L1.js', src: 'src/features/log/pages/LogPage.tsx', isDynamicEntry: true, imports: ['_ui-U1.js'], dynamicImports: ['src/features/log/Filters.tsx'] },
+    'src/features/log/Filters.tsx': { file: 'assets/Filters-F1.js', src: 'src/features/log/Filters.tsx', isDynamicEntry: true, css: ['assets/Filters-F1.css'] },
+    'src/lab/pages/ChaosPage.tsx': { file: 'assets/ChaosPage-C1.js', src: 'src/lab/pages/ChaosPage.tsx', isDynamicEntry: true, imports: ['_ui-U1.js', '_lab-only-X1.js'] },
+    '_ui-U1.js': { file: 'assets/ui-U1.js' },
+    '_stations-T1.js': { file: 'assets/stations-T1.js', css: ['assets/stations-T1.css'] },
+    '_lab-only-X1.js': { file: 'assets/lab-only-X1.js' },
+  }
+
+  // The entry's own files appear because a route imports it; the plugin removes what the shell list already has.
+  it('is every website route chunk with what it imports and its stylesheets, sorted', () => {
+    expect(routeChunkUrls(manifest, isWebsiteSource)).toEqual([
+      '/assets/Filters-F1.css',
+      '/assets/Filters-F1.js',
+      '/assets/LogPage-L1.js',
+      '/assets/StationsPage-S1.css',
+      '/assets/StationsPage-S1.js',
+      '/assets/index-AAA.css',
+      '/assets/index-AAA.js',
+      '/assets/stations-T1.css',
+      '/assets/stations-T1.js',
+      '/assets/ui-U1.js',
+    ])
+  })
+
+  it('follows a route into the chunks it loads lazily in turn', () => {
+    expect(routeChunkUrls(manifest, isWebsiteSource)).toContain('/assets/Filters-F1.js')
+  })
+
+  it('leaves the Lab out: its route chunk and the chunks only it imports', () => {
+    const urls = routeChunkUrls(manifest, isWebsiteSource)
+    expect(urls.some((url) => url.includes('ChaosPage') || url.includes('lab-only'))).toBe(false)
+  })
+
+  it('does not follow a website route into a Lab chunk it loads lazily', () => {
+    const withLabImport: Record<string, ManifestEntry> = { ...manifest, 'src/features/log/pages/LogPage.tsx': { ...(manifest['src/features/log/pages/LogPage.tsx'] as ManifestEntry), dynamicImports: ['src/lab/pages/ChaosPage.tsx'] } }
+    expect(routeChunkUrls(withLabImport, isWebsiteSource).some((url) => url.includes('ChaosPage'))).toBe(false)
+  })
+
+  it('lists a file once even when several routes import it, and terminates on an import cycle', () => {
+    const cyclic: Record<string, ManifestEntry> = { ...manifest, '_ui-U1.js': { file: 'assets/ui-U1.js', imports: ['_stations-T1.js'] }, '_stations-T1.js': { file: 'assets/stations-T1.js', imports: ['_ui-U1.js'] } }
+    const urls = routeChunkUrls(cyclic, isWebsiteSource)
+    expect(urls.filter((url) => url === '/assets/ui-U1.js')).toHaveLength(1)
+  })
+
+  it('returns nothing for a manifest with no website routes, and requireRouteChunks refuses that', () => {
+    expect(routeChunkUrls({}, isWebsiteSource)).toEqual([])
+    expect(() => requireRouteChunks([])).toThrow(/no route chunks/)
+    expect(requireRouteChunks(['/assets/a.js'])).toEqual(['/assets/a.js'])
+  })
+
+  it('tells the website from the Lab by source path', () => {
+    expect(isWebsiteSource('src/features/stations/pages/StationsPage.tsx')).toBe(true)
+    expect(isWebsiteSource('src/shell/pages/NotFoundPage.tsx')).toBe(true)
+    expect(isWebsiteSource('src/lab/pages/ChaosPage.tsx')).toBe(false)
   })
 })

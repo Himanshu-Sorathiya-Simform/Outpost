@@ -35,3 +35,56 @@ export function requireShellUrls(urls: readonly string[]): string[] {
   }
   return [...urls]
 }
+
+/** One entry of Vite's build manifest (dist/.vite/manifest.json): the chunk for a source file, what it imports, and its stylesheets. */
+export interface ManifestEntry {
+  file: string
+  src?: string
+  isDynamicEntry?: boolean
+  imports?: string[]
+  dynamicImports?: string[]
+  css?: string[]
+}
+
+/**
+ * Which lazy chunks the worker precaches besides the shell: every route of the website, with everything each one needs to run (the chunks
+ * it imports, its stylesheets, anything it loads lazily in turn). A route's own chunk is a dynamic entry in the manifest whose source file
+ * is `isWebsite`; the Lab's pages are left out on purpose (they stay runtime-cached, so a Lab page nobody opened still fails offline, which
+ * keeps the "never visited" failure alive for Stale chunks and the release scenario).
+ *
+ * The result is URL paths under /assets/, sorted so the same build always produces the same worker bytes. It can contain files that are
+ * also in the shell list; the caller removes those.
+ */
+export function routeChunkUrls(manifest: Record<string, ManifestEntry>, isWebsite: (src: string) => boolean): string[] {
+  const urls = new Set<string>()
+  const seen = new Set<string>()
+  const collect = (key: string): void => {
+    const entry = manifest[key]
+    if (!entry || seen.has(key)) return
+    seen.add(key)
+    urls.add(`/${entry.file}`)
+    for (const sheet of entry.css ?? []) urls.add(`/${sheet}`)
+    for (const next of [...(entry.imports ?? []), ...(entry.dynamicImports ?? [])]) {
+      // A lazy import of a Lab chunk from the website is not followed: the Lab is not precached.
+      const target = manifest[next]
+      if (target?.src && !isWebsite(target.src) && target.isDynamicEntry) continue
+      collect(next)
+    }
+  }
+  for (const [key, entry] of Object.entries(manifest)) if (entry.isDynamicEntry && entry.src && isWebsite(entry.src)) collect(key)
+  return [...urls].filter((url) => url.startsWith('/assets/')).sort()
+}
+
+/** True for a source file that belongs to the website (not the Lab): its lazy chunks are precached. */
+export const isWebsiteSource = (src: string): boolean => src.startsWith('src/') && !src.startsWith('src/lab/')
+
+/**
+ * A build whose manifest yields no route chunks would still "succeed", with a worker that precaches the shell only and says nothing about
+ * it (a change in how Vite writes the manifest would do that). Refusing to build is the only way anyone finds out.
+ */
+export function requireRouteChunks(urls: readonly string[]): string[] {
+  if (urls.length === 0) {
+    throw new Error('The service worker build step found no route chunks in dist/.vite/manifest.json, so the precache would hold the shell only. Has the manifest format changed?')
+  }
+  return [...urls]
+}

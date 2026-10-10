@@ -9,5 +9,8 @@
 /** Identifies this build of the worker. Sent back to the page for the message "get-version", so two worker versions can be told apart. */
 export const BUILD_ID: string = __BUILD_ID__
 
-/** The files `shell-v1` receives at install besides the page itself: entry script, preloaded chunks, stylesheets, fonts. Empty under `npm run dev`. */
+/**
+ * The files `shell-v1` receives at install besides the page itself: the shell (entry script, preloaded chunks, stylesheets, fonts) and then the
+ * website's route chunks with what they need. Every build renames all of them. Empty under `npm run dev`.
+ */
 export const PRECACHE_URLS: readonly string[] = __PRECACHE_URLS__

@@ -5,7 +5,7 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { bundleWorker } from './scripts/sw-build.ts'
-import { requireShellUrls, shellUrls } from './scripts/sw-shell.ts'
+import { isWebsiteSource, requireRouteChunks, requireShellUrls, routeChunkUrls, shellUrls, type ManifestEntry } from './scripts/sw-shell.ts'
 
 const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')) as { version: string }
 
@@ -38,7 +38,7 @@ function versionJson(): Plugin {
 
 /**
  * Builds the service worker. The worker is TypeScript under src/sw/; after the app bundle is written it is bundled into ONE classic
- * script, dist/sw.js, with the build id and the list of shell files written into it. Every build therefore produces different worker
+ * script, dist/sw.js, with the build id and the list of files to precache (the shell, then the website's route chunks) written into it. Every build therefore produces different worker
  * bytes, so a deploy is a new worker version to the browser. See scripts/sw-build.ts for why that has to happen inside the file.
  * Under `npm run dev` the same bundle is served at /sw.js on every request, with the id 'dev' and an empty shell list (only the page and
  * the API data are stored there).
@@ -58,7 +58,11 @@ function serviceWorker(): Plugin {
       const page = resolve(outDir, 'index.html')
       if (!existsSync(page)) return
       const readText = (url: string): string | undefined => (existsSync(resolve(outDir, `.${url}`)) ? readFileSync(resolve(outDir, `.${url}`), 'utf8') : undefined)
-      const urls = requireShellUrls(shellUrls(readFileSync(page, 'utf8'), readText))
+      const shell = requireShellUrls(shellUrls(readFileSync(page, 'utf8'), readText))
+      const manifest = JSON.parse(readFileSync(resolve(outDir, '.vite/manifest.json'), 'utf8')) as Record<string, ManifestEntry>
+      const routes = requireRouteChunks(routeChunkUrls(manifest, isWebsiteSource))
+      // The shell first, then the route chunks that are not already in it; sorted inside each group so the same build gives the same bytes.
+      const urls = [...shell, ...routes.filter((url) => !shell.includes(url))]
       writeFileSync(resolve(outDir, 'sw.js'), await bundleWorker({ buildId: BUILD_ID, urls }))
     },
     configureServer(server) {
@@ -102,6 +106,8 @@ export default defineConfig({
   build: {
     sourcemap: true,
     target: 'es2022',
+    // dist/.vite/manifest.json says which chunk belongs to which source file; the service worker build reads it to find the route chunks.
+    manifest: true,
   },
   test: {
     environment: 'node',

@@ -67,6 +67,7 @@ export function setup(served: Record<string, Served>, urls: readonly string[] = 
   const stores = new Map<string, Map<string, Response>>()
   const skipWaiting = vi.fn(() => Promise.resolve())
   const claim = vi.fn(() => Promise.resolve())
+  const enablePreload = vi.fn((): Promise<void> => Promise.resolve())
   const posted: unknown[] = []
   let offline = false
   let unreadable = false
@@ -185,6 +186,7 @@ export function setup(served: Record<string, Served>, urls: readonly string[] = 
       location: { origin: ORIGIN },
       addEventListener: (type: string, handler: Handler) => void handlers.set(type, handler),
       skipWaiting,
+      registration: { navigationPreload: { enable: enablePreload } },
       clients: { claim, matchAll: async () => windows },
     },
     caches: fakeCaches,
@@ -222,13 +224,15 @@ export function setup(served: Record<string, Served>, urls: readonly string[] = 
   }
 
   /** Fires `fetch`. Resolves with the Response the worker answered, or 'not handled' when it left the request to the browser. */
-  const dispatch = async (request: { method?: string; url: string; mode?: string; headers?: Headers }): Promise<Response | 'not handled'> => {
+  const dispatch = async (request: { method?: string; url: string; mode?: string; headers?: Headers; preload?: () => Promise<Response | undefined> }): Promise<Response | 'not handled'> => {
     let answer: Promise<Response> | undefined
     // A real Request, as the browser hands the worker. A navigation cannot be built that way, so its mode is set on the instance.
     const real = new SandboxRequest(request.url, { method: request.method ?? 'GET', headers: request.headers })
     if (request.mode && request.mode !== 'cors') Object.defineProperty(real, 'mode', { value: request.mode })
     handler('fetch')({
       request: real,
+      // What the browser's navigation preload gave, if anything: undefined when none was started.
+      preloadResponse: request.preload ? request.preload() : Promise.resolve(undefined),
       respondWith: (p: Promise<Response>) => void (answer = p),
       waitUntil: (p: Promise<unknown>) => void waited.push(p),
     })
@@ -249,6 +253,7 @@ export function setup(served: Record<string, Served>, urls: readonly string[] = 
     stores,
     skipWaiting,
     claim,
+    enablePreload,
     posted,
     setOffline: (value: boolean) => void (offline = value),
     setCacheUnreadable: (value: boolean) => void (unreadable = value),

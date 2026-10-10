@@ -16,7 +16,7 @@ A strategy uses a caching type, and every cache belongs to exactly one.
 - `src/sw/routes.ts`: the route table. Which URL is answered by which strategy and which bucket. Add a route here.
 - `src/sw/fetch.ts`: the `fetch` listener. GET only, same origin; a navigation goes to `navigation.ts`; everything else is looked up in the route table; no route means the browser handles the request.
 - `src/sw/lifecycle.ts`: `install` (precache, then skip waiting) and `activate` (claim the open pages).
-- `src/sw/navigation.ts`: page navigations: network first, the stored `/index.html` when the network fails. Reads `shell-v1`.
+- `src/sw/navigation.ts`: page navigations: network first with a 3 s deadline (using the browser's navigation preload), the stored `/index.html` when the network fails, answers 5xx or is too slow. Reads `shell-v1`.
 - `src/sw/build-info.ts` and `src/sw/env.d.ts`: the two build-time constants (`__BUILD_ID__`, `__PRECACHE_URLS__`) and how the rest of the worker reads them.
 - `src/sw/caching/precache.ts`: the precache type. Downloads and checks the shell, its files and the API data, then writes them, all or nothing.
 - `src/sw/caching/runtime.ts`: the runtime type. `lookup()`, `store()` (never-cached guard, size cap) and the `CacheTarget` shape.
@@ -32,10 +32,10 @@ Build and test files live in `scripts/`: `sw-build.ts` (the bundling step, also 
 
 ## The caches: what each one stores
 
-- **`shell-v1`** (precache). The page itself under `/`, `/index.html` and `/offline` (the same HTML), plus the hashed files it needs to paint: the entry script, the preloaded chunks, two stylesheets and 11 fonts (about 18 files). Written at install. Read by `navigation.ts` when the network fails and by the `/assets/` rule of cache-first, before `assets-v1`. No cap; changes only with a new install.
+- **`shell-v1`** (precache). The page itself under `/`, `/index.html` and `/offline` (the same HTML), plus the hashed files the app needs to run offline: the shell (entry script, preloaded chunks, two stylesheets, 11 fonts; 18 files) and every website route chunk with what it needs (`LogPage`, `StationsPage`, `HandbookPage`, `InboxPage`, `SettingsPage` and so on; about 54 files, 234 KB). The Lab's page chunks are not here; they are stored at runtime in `assets-v1`. Written at install. Read by `navigation.ts` when the network fails or is too slow and by the `/assets/` rule of cache-first, before `assets-v1`. No cap; every build renames every file and old generations stay until exercise 9.
 - **`precache-v1`** (precache). Twelve API answers fetched at install: `/api/handbook`, its eight `/api/handbook/<slug>` chapters, and `/api/bench/cache-only/alpha`, `beta`, `gamma` (`delta` is missing on purpose). Read by cache-only, which never asks the network. Changes only with a new install.
 - **`media-v1`** (runtime). Images the page loaded: `/media/dispatch/<id>.svg` plates and `/media/station/<code>.svg` thumbnails. Filled by cache-first on the first request, only a 200 `image/*`. Capped at 30 entries, oldest first.
-- **`assets-v1`** (runtime). Hashed files the page loaded that are not in the shell: the lazy route chunks (`/assets/LogPage-<hash>.js` and so on) and any other script, style, wasm, font or image under `/assets/`. Filled by cache-first. No cap; old generations are removed in exercise 9.
+- **`assets-v1`** (runtime). Hashed files the page loaded that are not in `shell-v1`: the Lab's lazy page chunks and any other script, style, wasm, font or image under `/assets/`. Filled by cache-first. No cap; old generations are removed in exercise 9.
 - **`api-v1`** (runtime). Three families, one entry per exact URL (query string included), capped at 80 entries across all of them, oldest first:
   - network-first: `/api/dispatches` (every filter and cursor), `/api/dispatches/<id>`, `/api/inbox/summary`, `/api/digest`;
   - stale-while-revalidate: `/api/stations`, `/api/stations/<code or id>`, `/api/bench/stale-while-revalidate/<key>`;
@@ -50,7 +50,7 @@ Build and test files live in `scripts/`: `sw-build.ts` (the bundling step, also 
 - **network-first**: runtime type, `api-v1`. Routes: `/api/dispatches`, `/api/dispatches/<id>`, `/api/inbox/summary`, `/api/digest`. Falls back to the stored copy after `NETWORK_TIMEOUT_MS` (3 s) or a failure.
 - **stale-while-revalidate**: runtime type, `api-v1`. Routes: `/api/stations`, `/api/stations/<code>`, `/api/bench/stale-while-revalidate/<key>`. Posts `cache-updated` when the background refresh finds something different.
 - **network-only**: no cache. Route: `/api/bench/network-only/<key>`. Everything else that must never be cached is not routed at all: the worker does not call `respondWith`, so the browser handles it as if there were no worker.
-- **navigation** (not one of the five): reads `shell-v1`, network first.
+- **navigation** (not one of the five): reads `shell-v1`; network first with a 3 s deadline; `activate` turns on navigation preload.
 
 ## Where to change what
 

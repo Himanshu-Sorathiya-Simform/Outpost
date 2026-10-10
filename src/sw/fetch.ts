@@ -23,7 +23,7 @@ export function onFetch(event: FetchEvent): void {
   if (url.origin !== scope.location.origin) return
   // Not calling respondWith() leaves the request to the browser, exactly as if there were no worker.
   if (request.mode === 'navigate') {
-    if (isAppRoute(url.pathname)) event.respondWith(navigate(request))
+    if (isAppRoute(url.pathname)) event.respondWith(navigate(event))
     return
   }
   const route = findRoute(url.pathname)

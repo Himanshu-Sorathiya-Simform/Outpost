@@ -14,13 +14,15 @@
 
 /**
  * shell-v1                                                                   TYPE: precache
- *   Stores:     the page itself, under three keys that hold the same HTML ('/', '/index.html', '/offline'), and the hashed files that page
- *               needs to paint: the entry script, the preloaded chunks, the stylesheets and the font files (/assets/index-<hash>.js,
- *               /assets/*.css, /assets/*.woff2; about 18 files, listed by the build in PRECACHE_URLS).
+ *   Stores:     the page itself, under three keys that hold the same HTML ('/', '/index.html', '/offline'), and the hashed files the app needs
+ *               to run offline: the SHELL (entry script, preloaded chunks, stylesheets and font files, 18 files) and every WEBSITE ROUTE chunk
+ *               with what it needs (/assets/LogPage-<hash>.js, StationsPage, HandbookPage, ChapterPage, InboxPage, SignalPage, SettingsPage,
+ *               ComposePage, DraftsPage and so on, with their stylesheets and shared chunks; about 54 more files). The Lab's page chunks are
+ *               NOT here: they are stored at runtime in assets-v1 when visited. The build lists everything in PRECACHE_URLS.
  *   Filled by:  install, once, all or nothing (caching/precache.ts).
- *   Read by:    navigation (the stored page when the network fails, navigation.ts) and the /assets rule of cache-first, which looks here
- *               before assets-v1 (strategies/cache-first.ts).
- *   Size:       fixed by the build; no cap.
+ *   Read by:    navigation (the stored page when the network fails or is too slow, navigation.ts) and the /assets rule of cache-first, which
+ *               looks here before assets-v1 (strategies/cache-first.ts).
+ *   Size:       fixed by the build (about 1.5 MB); no cap. Every build renames every file, and old generations stay until exercise 9.
  *   Changes:    only with a new worker install, that is, with a new build.
  */
 export const SHELL_CACHE = 'shell-v1'
