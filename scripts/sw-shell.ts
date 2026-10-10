@@ -1,28 +1,7 @@
 /**
- * Build-time half of the service worker: public/sw.js is a template, and these two tokens in it are replaced in dist/sw.js
- * after every build. The reason is not convenience. A browser decides "is there a new worker?" by comparing the bytes of
- * sw.js. If the precache list and the build id lived anywhere else, a deploy would change every hashed file and leave sw.js
- * byte for byte the same, so no worker would ever re-install and the precache would be stale for good.
+ * Which files make up the app shell: the half of the service worker build that reads what Vite emitted. The other half, bundling the
+ * worker and writing these files and the build id into it, is scripts/sw-build.ts.
  */
-
-/** The list of files to precache, as written in the template. Replaced by a JSON array of URL paths. */
-export const PRECACHE_TOKEN = '/* __PRECACHE_URLS__ */ []'
-
-/** The build id, quoted in the template. Replaced by a JSON string. */
-export const BUILD_ID_TOKEN = "'__BUILD_ID__'"
-
-export interface InjectOptions {
-  buildId: string
-  urls: readonly string[]
-}
-
-/** Replaces both tokens. Throws when one is missing: a worker that silently precaches nothing is worse than a failed build. */
-export function injectServiceWorker(source: string, { buildId, urls }: InjectOptions): string {
-  for (const token of [PRECACHE_TOKEN, BUILD_ID_TOKEN]) {
-    if (!source.includes(token)) throw new Error(`public/sw.js is missing the build token ${token}. The service worker build step has nothing to replace.`)
-  }
-  return source.replaceAll(PRECACHE_TOKEN, JSON.stringify(urls)).replaceAll(BUILD_ID_TOKEN, JSON.stringify(buildId))
-}
 
 /**
  * Which files the worker precaches: the app shell, and nothing more. That is what index.html points at (the entry script, the

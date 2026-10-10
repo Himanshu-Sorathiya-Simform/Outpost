@@ -1,36 +1,5 @@
-import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { BUILD_ID_TOKEN, injectServiceWorker, PRECACHE_TOKEN, requireShellUrls, shellUrls } from './sw-inject'
-
-const template = `const BUILD_ID = ${BUILD_ID_TOKEN}\nconst PRECACHE_URLS = ${PRECACHE_TOKEN}\nuse(BUILD_ID)\n`
-
-describe('injectServiceWorker', () => {
-  it('replaces the list and the build id, and nothing else', () => {
-    const out = injectServiceWorker(template, { buildId: 'mfx3k9', urls: ['/assets/a-1.js', '/assets/b-2.css'] })
-    expect(out).toBe(`const BUILD_ID = "mfx3k9"\nconst PRECACHE_URLS = ["/assets/a-1.js","/assets/b-2.css"]\nuse(BUILD_ID)\n`)
-  })
-
-  it('writes an empty list as []', () => {
-    expect(injectServiceWorker(template, { buildId: 'x', urls: [] })).toContain('const PRECACHE_URLS = []')
-  })
-
-  it('produces different bytes for a different build id or a different list, which is what makes a deploy a new worker', () => {
-    const a = injectServiceWorker(template, { buildId: 'one', urls: ['/assets/a.js'] })
-    expect(injectServiceWorker(template, { buildId: 'two', urls: ['/assets/a.js'] })).not.toBe(a)
-    expect(injectServiceWorker(template, { buildId: 'one', urls: ['/assets/b.js'] })).not.toBe(a)
-    expect(injectServiceWorker(template, { buildId: 'one', urls: ['/assets/a.js'] })).toBe(a)
-  })
-
-  it('refuses a template that lost a token, instead of shipping a worker that precaches nothing', () => {
-    expect(() => injectServiceWorker('const BUILD_ID = "x"', { buildId: 'x', urls: [] })).toThrow(/missing the build token/)
-    expect(() => injectServiceWorker(`const BUILD_ID = ${BUILD_ID_TOKEN}`, { buildId: 'x', urls: [] })).toThrow(/PRECACHE_URLS/)
-  })
-
-  it('escapes what it writes, so an odd build id cannot break out of the string', () => {
-    const out = injectServiceWorker(template, { buildId: `a"b\\c`, urls: [] })
-    expect(out).toContain(String.raw`const BUILD_ID = "a\"b\\c"`)
-  })
-})
+import { requireShellUrls, shellUrls } from './sw-shell'
 
 describe('shellUrls', () => {
   const html = `<!doctype html><html><head>
@@ -89,20 +58,5 @@ describe('requireShellUrls', () => {
   it('is what stops the realistic failure: an index.html written in a way the extraction does not recognise', () => {
     const rewritten = `<script type=module src=/assets/index-AAA.js></script><link rel=stylesheet href=/assets/ui-BBB.css>`
     expect(() => requireShellUrls(shellUrls(rewritten, () => undefined))).toThrow(/no \/assets\/ files/)
-  })
-})
-
-describe('public/sw.js template', () => {
-  const source = readFileSync(new URL('../public/sw.js', import.meta.url), 'utf8')
-
-  it('still carries both build tokens exactly once, so the build step has something to replace', () => {
-    expect(source.split(PRECACHE_TOKEN)).toHaveLength(2)
-    expect(source.split(BUILD_ID_TOKEN)).toHaveLength(2)
-  })
-
-  it('builds into a worker with no token left over', () => {
-    const out = injectServiceWorker(source, { buildId: 'test', urls: ['/assets/x.js'] })
-    expect(out).not.toContain('__PRECACHE_URLS__')
-    expect(out).not.toContain('__BUILD_ID__')
   })
 })

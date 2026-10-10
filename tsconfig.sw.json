@@ -1,25 +1,21 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "lib": ["ES2023", "WebWorker"],
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "jsx": "react-jsx",
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
     "isolatedModules": true,
     "skipLibCheck": true,
-    "resolveJsonModule": true,
     "noEmit": true,
-    "types": ["vite/client"],
+    "types": [],
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"],
       "@shared/*": ["shared/*"]
     }
   },
-  "include": ["src", "shared"],
-  "exclude": ["src/sw"]
+  "include": ["src/sw"]
 }

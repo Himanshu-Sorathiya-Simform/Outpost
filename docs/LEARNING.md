@@ -4,6 +4,8 @@ Sixteen exercises that turn Outpost from an ordinary website into a PWA, in the 
 
 This file is the curriculum. `docs/CONTRACTS.md` is the reference: the URL map, header formats, the sync and push formats and the message protocol. Keep it open while you write the worker. This file points into it instead of repeating it.
 
+**Where the worker lives.** The exercises below say `public/sw.js`. The worker is now TypeScript under `src/sw/`, bundled by `vite build` into one `dist/sw.js` (nothing about registration, scope or updates changes). Read "edit `public/sw.js`" as "edit the matching file in `src/sw/`": `docs/WORKER.md` has the map, and each strategy has its own file in `src/sw/strategies/`.
+
 Do them in order. A few depend on earlier ones: 10 assumes the cache cleanup from 9, 13 and 14 want an installed app (15), and 16 assumes the rest are in place.
 
 Exercises give pointers, contracts, what to expect in the Lab and what usually goes wrong. They do not give worker code. The few fragments of one to four lines show a contract, not a solution.

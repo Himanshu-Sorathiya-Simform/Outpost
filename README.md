@@ -77,7 +77,7 @@ The Lab home has a 15-item learning path. `docs/LEARNING.md` splits the same wor
 | `src/pwa/share.ts` | Web Share | Share button on dispatches and chapters | Lab → Queue |
 | `src/pwa/store.ts` | reactive state the UI renders (`swState`, `updateAvailable`, `queuedCount`, ...) | shell, Settings | status strip |
 
-Also yours, and deliberately absent: the service worker file (`public/sw.js` serves from the root scope without a build step; a bundled worker is fine too), `public/manifest.webmanifest`, and the `<link rel="manifest">` hook marked in `index.html`. Icons (192, 512, maskable, apple-touch) are already in `public/icons/`.
+Also yours, and deliberately absent: the service worker (it lives in `src/sw/` and `vite build` bundles it into one `dist/sw.js` served from the root scope; see `docs/WORKER.md`), `public/manifest.webmanifest`, and the `<link rel="manifest">` hook marked in `index.html`. Icons (192, 512, maskable, apple-touch) are already in `public/icons/`.
 
 Already built for you: the page side of the worker message protocol (`shared/sw-protocol.ts`, `src/lib/bridge`), the Background Sync outbox record shape, a version and deploy watcher, a forced-upgrade gate, and an error taxonomy that classifies a failure into one of 25 kinds. The Lab → Queue protocol tester lets you check the page half before you write the worker half.
 
