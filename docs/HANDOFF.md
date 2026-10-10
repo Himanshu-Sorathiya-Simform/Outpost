@@ -1,6 +1,6 @@
 # Handoff: Outpost PWA learning project
 
-Living context document. Read this first in a new session, then `docs/LEARNING.md` for the exercise being worked on. It is updated at the end of every exercise (see "How to update this file"). Last updated: Exercise 3 validated by the user and committed (2026-10-09).
+Living context document. Read this first in a new session, then `docs/LEARNING.md` for the exercise being worked on. It is updated at the end of every exercise (see "How to update this file"). Last updated: Exercise 4 validated by the user and committed (2026-10-10).
 
 ## 1. What this project is
 
@@ -61,9 +61,9 @@ The user asked to skip all "breaker" code and the break-it phase. Do not write d
 | # | Exercise | Status | Commits |
 |---|---|---|---|
 | 1 | Register the worker, read its lifecycle | **Done** (on `origin/main`) | `0d61811` |
-| 2 | Install, activate, precache the shell | **Done**, validated by the user in 16 browser scenarios; not pushed | `f686a52` |
-| 3 | Cache-only handbook, `delta` miss | **Done**, validated by the user in 16 browser scenarios; not pushed | the commit titled `ex3: ...` (a commit cannot contain its own hash; find it with `git log --oneline --grep=ex3`) |
-| 4 | Cache-first media and assets | | |
+| 2 | Install, activate, precache the shell | **Done**, validated by the user in 16 browser scenarios; on `origin/main` | `f686a52` |
+| 3 | Cache-only handbook, `delta` miss | **Done**, validated by the user in 16 browser scenarios; the user pushed up to `ac73922`, this commit may still be local | the commit titled `ex3: ...` (a commit cannot contain its own hash; find it with `git log --oneline --grep=ex3`) |
+| 4 | Cache-first media and assets | **Done**, validated by the user in 17 browser scenarios; local, not pushed | the commit titled `ex4: ...` (find it with `git log --oneline --grep=ex4`) |
 | 5 | Network-first with timeout | | |
 | 6 | Stale-while-revalidate, `cache-updated` | | |
 | 7 | Network-only done properly | | |
@@ -77,9 +77,20 @@ The user asked to skip all "breaker" code and the break-it phase. Do not write d
 | 15 | Manifest, install, share, shortcuts | | |
 | 16 | Break it on purpose, handle it | | (the doc's own exercise about chaos; the user's "no breakers" rule is about extra break code, so ask before deciding how to treat this one) |
 
-Git log: `cde90b4` initial project setup → `0d61811` ex1 → `f686a52` ex2.
+Git log: `cde90b4` initial project setup → `0d61811` ex1 → `f686a52` ex2 → `ac73922` docs → ex3 → ex4 (find the ones without a hash with `git log --oneline`).
 
 ## 5. What exists now
+
+### Exercise 4: cache-first for media, assets and the bench route (commit titled `ex4: ...`)
+
+Decisions the user accepted ("Continue" on the briefing defaults):
+- Three runtime caches: **`media-v1`** (`/media/*`, capped at `MEDIA_LIMIT = 30`, oldest stored first, which is FIFO not LRU: a hit does not move an entry), **`assets-v1`** (every `/assets/*` the page loads that is not in the shell, no cap), **`api-v1`** (`/api/bench/cache-first/:key`, no cap; later API strategies reuse it).
+- `/assets/*` reads **`shell-v1` first**, then `assets-v1`, then the network; only the network answer is written, to `assets-v1`. The old `PRECACHED` set and `fromPrecache()` were removed (all 18 shell files are `/assets/*`, so the rule covers them). **Consequence for Exercise 8:** any route visited once online now works offline (its chunk is in `assets-v1`); the failure that remains is "never visited AND offline".
+- `/favicon.svg`, `/icons/*`, `/version.json`, `/sw.js` stay untouched (no hash). A navigation to a media URL typed into the address bar stays untouched. A request with a `Range` header is left to the network.
+
+Code (`public/sw.js`): `CACHE_FIRST` is a list of rules (`matches`, `readFrom`, `writeTo`, `limit`, `accepts`); `lookup()` tries the caches in `readFrom` order, an unreadable cache counts as a miss; `cacheFirst(event, request, rule)`: hit returns `stamped(hit, 'cache', 'cache-first', cacheName)`; a miss goes to `fetch(request)` (a network failure is rethrown, no invented answer); the answer is stored only if status is 200, `Content-Length` is not `0` and `rule.accepts` agrees, from `response.clone()` inside `event.waitUntil(store(...))`; the page gets `stamped(response, 'network', 'cache-first', writeTo)` (`X-SW-Source: network` is read by the page as "SW network"). `accepts`: media `image/*`; assets a positive allow-list (`text/javascript`, `text/css`, `application/javascript`, `application/wasm`, `font/*`, `application/font-*`, `image/*`), so an empty 200 with a JSON type or a captive portal is refused; bench entry JSON whose `strategy` is `cache-first` and `key` equals the URL's key. `store()` swallows and `console.warn`s any failure (quota, revoked cache): the page already has its answer. `trim(cache, limit)` deletes the oldest keys beyond the cap after each `put`. `stamped()` is shared with `cacheOnly()` (refactor). The bench pattern is `^/api/bench/cache-first/[^/]+$`, so `/bump` and an empty key are not matched.
+- Tests: `scripts/sw.test.ts` 64 -> 104 (fake cache gained `keys`/`delete`, a quota switch and a body that fails half way). Typecheck, lint and all 757 tests pass. Mutation check: removing the status/type check fails 16 tests, removing the cap fails 1.
+- Not verified without a browser (user validates): the real `<img>` request path, that `cache.keys()` insertion order holds in Chrome, the Resources "Served from" labels.
 
 ### Exercise 3: cache-only handbook and the `delta` miss (commit titled `ex3: ...`)
 
@@ -139,18 +150,15 @@ Exercise 2 design lesson: do not precache what later exercises need to fail. Pre
 
 Open observation carried forward: `registration.register()` failures (syntax or evaluation error) surface as a bare `TypeError` and are filed as kind `unknown`. The same classification gap was fixed for `update()` only. A follow-up commit could map it; the user has not asked for it yet.
 
-## 7. Notes for the next exercise (Exercise 4: cache-first for media and assets)
+## 7. Notes for the next exercise (Exercise 5: network-first with a timeout, dispatches)
 
-From `docs/LEARNING.md` and `docs/CONTRACTS.md`:
+From `docs/LEARNING.md`:
 
-- `GET /media/*`: look in a media cache (name it `media-v1`), on a miss go to the network and store only a 200 whose `Content-Type` starts with `image/`. Cap the cache: after each `put`, trim to a fixed number of entries, oldest first (new dispatches keep arriving).
-- `GET /assets/*`: same idea into a separate runtime cache. Note this now interacts with exercise 2: shell files are already precached in `shell-v1` and served by `fromPrecache`; lazy route chunks are not. Runtime cache-first for `/assets/*` would store each route chunk the first time it is visited, which makes visited routes work offline and changes the exercise 8 failure story ("never visited AND offline fails"); decide explicitly and say so.
-- `GET /api/bench/cache-first/:key`: same rule; it is the route that shows the cost of cache-first (STALE by N after a bump, Hits + stays 0).
-- Leave `/favicon.svg`, `/icons/*`, `/version.json` alone (unhashed: cache-first would never update them; `/version.json` under cache-first hides every deploy).
-- Guards to explain: validate status and content type before `cache.put` (a Chaos rule on `/media/` or the Stale chunks preset would otherwise be stored and served forever); put a `clone()` and answer with the original; keep the write inside `event.waitUntil`; `cache.put` rejects non-GET.
-- To observe it the user switches Lab -> Server -> Header profile to No store (realistic profile lets the browser's HTTP cache answer and hides the worker).
-- Lab pages: Bench cache-first card (second reading "SW cache", Hits + 0, then "STALE by 1 rev" after Bump on server), Lab -> Network -> Server (no `/media/` rows on a second load of `/log`), Scenarios -> Stale after bump.
-- Exercise 3's `cacheOnly()` is a model for the stamping helpers: copy headers into a new `Response`, set `X-SW-Source` / `X-SW-Strategy` / `X-SW-Cache`, keep `X-Served-At`.
+- Routes: `GET /api/dispatches`, `GET /api/dispatches/<id>`, `GET /api/inbox/summary`, `GET /api/digest`. Try the network with a timeout (about 3 s; `apiFetch` itself gives up at 10 s, Lab -> Query -> Settings -> Request timeout, so the worker must be shorter). Answer with a 200 whose `Content-Type` is JSON and store a clone (cache `api-v1`, the name Exercise 4 already uses for the bench route); otherwise answer from `caches.match(request)`; if nothing is stored let the network failure through.
+- Stamp what is returned: `X-SW-Source: network` or `fallback` (the stored copy), `X-SW-Strategy: network-first`, `X-SW-Cache`, and `X-SW-Cached-At` at write time. The page then shows "Stored copy" notices (needs `cache` or `fallback` stamps). `stamped()`, `stampForStorage()`, `store()`/`trim()` helpers already exist in `public/sw.js`; reuse them.
+- Decide: `/api/dispatches` has query strings (cursor, filters, `limit`); the exact URL is the key (as in Exercise 3), so each page and filter is its own entry. Decide whether to cap it. Mutations are non-GET and are left alone. Truncated feed (`/api/dispatches` sends 200 then the socket dies): the failure arrives while the body is read, so the clone given to `store()` rejects and the page must fall back; think about whether the worker should read the body before answering (the Exercise 4 `store()` catch already keeps a bad write from reaching the page).
+- Lab pages: Chaos -> Presets -> Lie-fi (4 to 9 s delay) and Chaos -> Probe (target Dispatch list, 15 s, Fire 5 times); Bench -> Scenarios -> Server down (network-first row: warm copy, "SW fallback") and Stale after bump (network-first row FRESH).
+- Known interaction: Exercise 2's `navigate()` has no timeout; Lie-fi delays `/api` only, not navigation, so Exercise 5 is about API calls. Exercise 8 handles navigation timeouts.
 
 ## 8. How to update this file
 

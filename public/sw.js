@@ -5,6 +5,10 @@
 // offline, an unvisited route still fails to load, on purpose.
 // Exercise 3: install also precaches the handbook (the index and every chapter) and the bench keys alpha, beta and gamma, and those
 // URLs are answered from that cache and never from the network. A URL that was not stored gets a 504 the page understands.
+// Exercise 4: cache first for /media/* (media-v1, capped), for /assets/* (the shell files in shell-v1, everything else the page
+// loads in assets-v1) and for /api/bench/cache-first/:key (api-v1). The cache answers when it has the URL; the network is asked only
+// on a miss, and the answer is stored only if it is what that URL should be. The unhashed files (/favicon.svg, /icons/*, /version.json)
+// are left to the network on purpose: cache first would serve them unchanged forever.
 // Every other /api request still goes to the network. Later exercises add the strategies for the rest, the offline page, versioned
 // cleanup, the update flow, sync and push.
 //
@@ -24,13 +28,19 @@ const PRECACHE_CACHE = 'precache-v1' // API data stored at install time and answ
 // looks up '/' and '/offline' by those exact URLs.
 const SHELL_KEYS = ['/', '/index.html', '/offline']
 
-const PRECACHED = new Set(PRECACHE_URLS)
+const MEDIA_CACHE = 'media-v1' // dispatch plates and station thumbnails, capped at MEDIA_LIMIT entries
+const ASSETS_CACHE = 'assets-v1' // hashed files the page loaded after the shell: the lazy route chunks
+const API_CACHE = 'api-v1' // API answers stored at runtime (exercise 4: the bench cache-first route)
+
+// New dispatches keep arriving, so media cannot grow for ever. 30 is small enough to watch it trim: ten stations plus two more log pages.
+const MEDIA_LIMIT = 30
 
 // The cache-only routes. The handbook page and Lab -> Caches look these URLs up by exact name, so they are stored under exactly these.
 const HANDBOOK_URL = '/api/handbook'
 const BENCH_CACHE_ONLY = '/api/bench/cache-only/'
 // delta is missing on purpose. A cache-only route is only safe for what was stored at install; delta exists to show the miss.
 const BENCH_PRECACHED_KEYS = ['alpha', 'beta', 'gamma']
+const BENCH_CACHE_FIRST = '/api/bench/cache-first/'
 
 /**
  * Fetches one URL for the precache and refuses anything that is not what it should be.
@@ -153,12 +163,6 @@ async function navigate(request) {
   }
 }
 
-/** A precached file has a hash in its name, so it never changes under that name: the stored copy is always right. */
-async function fromPrecache(request) {
-  const hit = await caches.match(request, { cacheName: SHELL_CACHE })
-  return hit || fetch(request)
-}
-
 /**
  * Exactly the handbook index, its chapters, and the bench's cache-only routes. The match is on the path with a boundary: '/api/handbook'
  * itself or something under '/api/handbook/', never a name that merely starts with those letters.
@@ -201,11 +205,96 @@ async function cacheOnly(url) {
     hit = undefined
   }
   if (!hit) return cacheMiss(url)
-  const headers = new Headers(hit.headers)
-  headers.set('X-SW-Source', 'cache')
-  headers.set('X-SW-Strategy', 'cache-only')
-  headers.set('X-SW-Cache', PRECACHE_CACHE)
-  return new Response(hit.body, { status: hit.status, statusText: hit.statusText, headers })
+  return stamped(hit, 'cache', 'cache-only', PRECACHE_CACHE)
+}
+
+/**
+ * A copy of the response that says where it came from. The page reads these three headers to show "SW cache" or "SW network" on the
+ * Bench card and in Lab -> Network. The body is passed on as a stream, not copied.
+ */
+function stamped(response, source, strategy, cacheName) {
+  const headers = new Headers(response.headers)
+  headers.set('X-SW-Source', source)
+  headers.set('X-SW-Strategy', strategy)
+  headers.set('X-SW-Cache', cacheName)
+  return new Response(response.body, { status: response.status, statusText: response.statusText, headers })
+}
+
+const contentType = (response) => (response.headers.get('content-type') || '').toLowerCase()
+
+// What each cache-first URL has to be before it may be stored. A 404, an error JSON, a captive portal's HTML or a body of zero
+// bytes all arrive as a "successful" fetch, and a stored one would be served for as long as the cache lives.
+const isImage = async (response) => contentType(response).startsWith('image/')
+const ASSET_TYPE = /^(text\/(javascript|css)|application\/(javascript|wasm)|font\/|application\/font-|image\/)/
+const isAsset = async (response) => ASSET_TYPE.test(contentType(response))
+async function isBenchEntry(response, url) {
+  if (!contentType(response).includes('application/json')) return false
+  try {
+    const body = await readJson(response, url.pathname)
+    return body.strategy === 'cache-first' && body.key === url.pathname.slice(BENCH_CACHE_FIRST.length)
+  } catch {
+    return false
+  }
+}
+
+/**
+ * The cache-first URLs. `readFrom` is searched in order. The assets rule reads shell-v1 first because the shell files were stored there
+ * at install; everything else the page loads is stored in assets-v1. `limit` 0 means no cap: hashed files only change with a new build,
+ * and exercise 9 deletes old generations.
+ */
+const CACHE_FIRST = [
+  { matches: (path) => path.startsWith('/media/'), readFrom: [MEDIA_CACHE], writeTo: MEDIA_CACHE, limit: MEDIA_LIMIT, accepts: isImage },
+  { matches: (path) => path.startsWith('/assets/'), readFrom: [SHELL_CACHE, ASSETS_CACHE], writeTo: ASSETS_CACHE, limit: 0, accepts: isAsset },
+  { matches: (path) => /^\/api\/bench\/cache-first\/[^/]+$/.test(path), readFrom: [API_CACHE], writeTo: API_CACHE, limit: 0, accepts: isBenchEntry },
+]
+
+/** The first stored copy of the URL, with the name of the cache it was in. A cache that cannot be read counts as one that has nothing. */
+async function lookup(rule, href) {
+  for (const cacheName of rule.readFrom) {
+    try {
+      const hit = await caches.match(href, { cacheName })
+      if (hit) return { hit, cacheName }
+    } catch {
+      // keep looking in the next cache, then go to the network
+    }
+  }
+  return undefined
+}
+
+/** Keeps the newest `limit` entries. cache.keys() lists them in the order they were stored, so the oldest go first. */
+async function trim(cache, limit) {
+  const keys = await cache.keys()
+  for (const key of keys.slice(0, Math.max(0, keys.length - limit))) await cache.delete(key)
+}
+
+/**
+ * Stores one answer. By now the page already has its response, so a failure here (a full disk, a revoked cache) must not turn into an
+ * error for the page: it is logged and the next request tries again.
+ */
+async function store(rule, url, response) {
+  try {
+    const cache = await caches.open(rule.writeTo)
+    await cache.put(url.href, stampForStorage(response))
+    if (rule.limit > 0) await trim(cache, rule.limit)
+  } catch (error) {
+    console.warn(`Outpost worker: could not store ${url.pathname} in ${rule.writeTo}`, error)
+  }
+}
+
+/**
+ * Cache first: the stored copy if there is one, and the network only when there is not. The exact URL is the key, query string included.
+ * A network failure on a miss is not turned into a made-up answer: the page gets the real failure (an image that does not load, a chunk
+ * that does not load, an offline error on the Bench card). Only an answer that passes the rule's check is stored, and it is stored from a
+ * clone inside event.waitUntil: the page gets the original without waiting for the write, and the worker is not stopped until it is done.
+ */
+async function cacheFirst(event, request, rule) {
+  const url = new URL(request.url)
+  const found = await lookup(rule, url.href)
+  if (found) return stamped(found.hit, 'cache', 'cache-first', found.cacheName)
+  const response = await fetch(request)
+  const storable = response.status === 200 && response.headers.get('content-length') !== '0' && (await rule.accepts(response, url))
+  if (storable) event.waitUntil(store(rule, url, response.clone()))
+  return stamped(response, 'network', 'cache-first', rule.writeTo)
 }
 
 self.addEventListener('fetch', (event) => {
@@ -218,8 +307,13 @@ self.addEventListener('fetch', (event) => {
     if (isAppRoute(url.pathname)) event.respondWith(navigate(request))
     return
   }
-  if (isCacheOnly(url.pathname)) event.respondWith(cacheOnly(url))
-  else if (PRECACHED.has(url.pathname)) event.respondWith(fromPrecache(request))
+  if (isCacheOnly(url.pathname)) {
+    event.respondWith(cacheOnly(url))
+    return
+  }
+  // A range request wants part of a file; the stored copy is the whole file, so those go to the network.
+  const rule = CACHE_FIRST.find((candidate) => candidate.matches(url.pathname))
+  if (rule && !request.headers.has('range')) event.respondWith(cacheFirst(event, request, rule))
 })
 
 /** Tells whoever asked which build this worker is and which caches it holds. */
