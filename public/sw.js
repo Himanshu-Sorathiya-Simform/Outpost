@@ -15,6 +15,9 @@
 // Exercise 6: stale while revalidate for GET /api/stations, /api/stations/<code> and /api/bench/stale-while-revalidate/:key. The stored
 // copy is answered at once and a background request checks the server; if what comes back differs (by ETag, else X-Resource-Rev),
 // it is stored and every open window is told with a cache-updated message, so the screen changes with no reload.
+// Exercise 7: network only for /api/bench/network-only/:key. It goes through the worker (respondWith(fetch(...)), HTTP cache bypassed,
+// stamped X-SW-Source: network) and is never stored. Every other live route (/api/signal, session, ping, version, push, the lab, every
+// write, /version.json) is deliberately left to the browser, and NEVER_CACHED below makes store() refuse them even if a rule ever matched.
 // Every other /api request still goes to the network. Later exercises add the offline page, versioned cleanup, the update flow, sync and push.
 //
 // Plain script, no import: this file is copied to dist/sw.js, and vite.config.ts replaces the two tokens below after each build
@@ -225,13 +228,14 @@ async function cacheOnly(url) {
 
 /**
  * A copy of the response that says where it came from. The page reads these three headers to show "SW cache" or "SW network" on the
- * Bench card and in Lab -> Network. The body is passed on as a stream, not copied.
+ * Bench card and in Lab -> Network. Response headers are read-only, which is why this builds a new Response. The body is passed on as a stream, not copied.
  */
 function stamped(response, source, strategy, cacheName) {
   const headers = new Headers(response.headers)
   headers.set('X-SW-Source', source)
   headers.set('X-SW-Strategy', strategy)
-  headers.set('X-SW-Cache', cacheName)
+  // No cache name means no cache was involved (network only).
+  if (cacheName) headers.set('X-SW-Cache', cacheName)
   return new Response(response.body, { status: response.status, statusText: response.statusText, headers })
 }
 
@@ -268,6 +272,15 @@ const CACHE_FIRST = [
 const NETWORK_FIRST_PATH = /^\/api\/(dispatches(\/[^/]+)?|inbox\/summary|digest)$/
 const NETWORK_FIRST = { readFrom: [API_CACHE], writeTo: API_CACHE, limit: API_LIMIT }
 
+// The network-only bench route: one key. The only never-cached route that goes through the worker; the rest of NEVER_CACHED is left alone.
+const NETWORK_ONLY_PATH = /^\/api\/bench\/network-only\/[^/]+$/
+
+// What must never reach any cache: live or authenticated data, the worker's own script, the lab instruments. Nothing routes these to a
+// strategy that stores, so this list is a second lock, not the first: store() refuses a URL on it whatever rule asked. Each entry is a
+// path and everything under it.
+const NEVER_CACHED = ['/api/signal', '/api/session', '/api/ping', '/api/version', '/version.json', '/sw.js', '/api/push', '/api/_lab', '/api/bench/network-only']
+const isNeverCached = (pathname) => NEVER_CACHED.some((base) => pathname === base || pathname.startsWith(`${base}/`))
+
 // The stale-while-revalidate routes: the station list, one station (a code or an id), and the bench route for any key.
 const SWR_PATH = /^\/api\/(stations(\/[^/]+)?|bench\/stale-while-revalidate\/[^/]+)$/
 const SWR = { readFrom: [API_CACHE], writeTo: API_CACHE, limit: API_LIMIT }
@@ -296,6 +309,10 @@ async function trim(cache, limit) {
  * error for the page: it is logged and the next request tries again. Says whether the write happened.
  */
 async function store(rule, url, response) {
+  if (isNeverCached(url.pathname)) {
+    console.warn(`Outpost worker: refused to store ${url.pathname}, it is on the never-cached list`)
+    return false
+  }
   try {
     const cache = await caches.open(rule.writeTo)
     await cache.put(url.href, stampForStorage(response))
@@ -468,6 +485,18 @@ async function staleWhileRevalidate(event, request) {
   throw result.error
 }
 
+/**
+ * Network only: straight to the server, never stored, never answered from anywhere else. Written as respondWith(fetch(...)) and not as "do
+ * nothing" so the answer can be stamped (the page then reads "SW network"). The copy of the request has cache 'no-store': under the "HTTP
+ * cache trap" profile the API has max-age=60, and the browser's own cache would otherwise answer a live read. Everything else about the
+ * request (headers such as X-Tab-Id, credentials, signal) is kept, so the server log still names the tab. A failure is not caught: the page
+ * gets the same network error it would get without a worker, which is what a live route has to do.
+ */
+async function networkOnly(request) {
+  const response = await fetch(new Request(request, { cache: 'no-store' }))
+  return stamped(response, 'network', 'network-only')
+}
+
 self.addEventListener('fetch', (event) => {
   const { request } = event
   if (request.method !== 'GET') return
@@ -488,6 +517,10 @@ self.addEventListener('fetch', (event) => {
   }
   if (SWR_PATH.test(url.pathname)) {
     event.respondWith(staleWhileRevalidate(event, request))
+    return
+  }
+  if (NETWORK_ONLY_PATH.test(url.pathname)) {
+    event.respondWith(networkOnly(request))
     return
   }
   // A range request wants part of a file; the stored copy is the whole file, so those go to the network.

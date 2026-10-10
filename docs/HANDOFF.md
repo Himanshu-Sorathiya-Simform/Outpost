@@ -1,6 +1,6 @@
 # Handoff: Outpost PWA learning project
 
-Living context document. Read this first in a new session, then `docs/LEARNING.md` for the exercise being worked on. It is updated at the end of every exercise (see "How to update this file"). Last updated: Exercise 6 validated by the user and committed (2026-10-10).
+Living context document. Read this first in a new session, then `docs/LEARNING.md` for the exercise being worked on. It is updated at the end of every exercise (see "How to update this file"). Last updated: Exercise 7 committed without a separate browser validation (2026-10-10); the worker refactor is next.
 
 ## 1. What this project is
 
@@ -66,7 +66,7 @@ The user asked to skip all "breaker" code and the break-it phase. Do not write d
 | 4 | Cache-first media and assets | **Done**, validated by the user in 17 browser scenarios; local, not pushed | the commit titled `ex4: ...` (find it with `git log --oneline --grep=ex4`) |
 | 5 | Network-first with timeout | **Done**, validated by the user in 16 browser scenarios; local, not pushed | the commit titled `ex5: ...` (find it with `git log --oneline --grep=ex5`) |
 | 6 | Stale-while-revalidate, `cache-updated` | **Done**, validated by the user in 15 browser scenarios; local, not pushed | the commit titled `ex6: ...` (find it with `git log --oneline --grep=ex6`) |
-| 7 | Network-only done properly | | |
+| 7 | Network-only done properly | **Done** in code and tests; the user chose to skip separate browser scenarios (little is visible: the Bench network only card reads "SW network"); three browser checks are folded into the validation after the refactor | the commit titled `ex7: ...` (find it with `git log --oneline --grep=ex7`) |
 | 8 | Offline navigation, chunks | | |
 | 9 | Versioned caches, cleanup | | |
 | 10 | The update flow | | |
@@ -80,6 +80,16 @@ The user asked to skip all "breaker" code and the break-it phase. Do not write d
 Git log: `cde90b4` initial project setup → `0d61811` ex1 → `f686a52` ex2 → `ac73922` docs → ex3 → ex4 (find the ones without a hash with `git log --oneline`).
 
 ## 5. What exists now
+
+### Exercise 7: network-only, done properly (commit titled `ex7: ...`)
+
+Decisions the user accepted ("Continue" on the briefing defaults):
+- **Only `/api/bench/network-only/<key>` goes through the worker** (`NETWORK_ONLY_PATH`, GET, one segment): `networkOnly(request)` = `respondWith(fetch(new Request(request, { cache: 'no-store' })))`, answer stamped by `stamped(response, 'network', 'network-only')` with **no `X-SW-Cache` header** (`stamped()` now skips it when no cache name is given; no cache is involved). `cache: 'no-store'` so the browser HTTP cache cannot answer (under the HTTP cache trap profile the API has `max-age=60`; the server itself sets `Cache-Control: no-store` on this route only under Realistic). The rest of the request is kept (headers such as `X-Tab-Id` so the server log still names the tab, credentials, signal). A failure is not caught: the page gets the same network error as without a worker; no timeout, no stored substitute, never stored.
+- **Everything else on the doc's list is left to the browser** (the `fetch` listener never calls `respondWith`): `/api/signal`, `/api/session`, `/api/ping`, `/api/version`, `/version.json`, `/api/push/*`, `/api/_lab/*`, and every non-GET (the listener returns early for any method but GET).
+- **Second lock:** `NEVER_CACHED` (`/api/signal`, `/api/session`, `/api/ping`, `/api/version`, `/version.json`, `/sw.js`, `/api/push`, `/api/_lab`, `/api/bench/network-only`, each a path and everything under it on a segment boundary) and `isNeverCached(pathname)`; `store()` refuses such a URL (returns false, `console.warn`) whatever rule asked. Nothing routes those URLs to a storing strategy, so this is defence in depth for later exercises.
+- Tests: `scripts/sw.test.ts` 185 -> 225 (878 in the repo). The `dispatch()` test helper now builds a real `Request` (the sandbox class; a navigation's `mode` is set on the instance) instead of a plain object, because `networkOnly` clones the request; `sw.forwarded` records the headers sent to the server and `sw.sandbox` exposes the worker's top-level functions (`store`) to tests. Mutation check: dropping `no-store` fails 1, the store guard 9, the stamp 5, a missing list entry 1, a prefix without a segment boundary 1, a loose path regex 2. Run over real HTTP against a scratch server on :4013 (stopped by exact PID): three bench reads each hit the server (hits 1, 2, 3), stamped `network` / `network-only`, no cache named; signal, session, ping, version, version.json, push, lab and a POST bump are not handled; no cache bucket is written; Hard down rethrows.
+- What changes for the user: the Bench network only card reads "SW network" instead of "Network"; everything else is the same as before (it already bypassed the worker); the point is the explicit guarantee and its tests.
+- **After this exercise the five strategies all exist; the next piece of work is the worker refactor** (split `public/sw.js` into `src/sw/` modules), see the memory note `project-worker-refactor-plan` and the layout the user approved on 2026-10-10: `config.ts` (cache catalogue), `routes.ts`, `caching/{precache,runtime,on-demand}.ts` (on-demand a documented placeholder), `strategies/*`, `lib/*`, every file with a "what it holds / what it means / caching type / caches touched" header, `docs/WORKER.md`, update the Lab `learning-path.ts` strings. Do it in one behaviour-preserving commit; the user wants it BEFORE exercise 8 (decided: "first lets complete ex7, then we will refactor").
 
 ### Exercise 6: stale-while-revalidate for stations, and `cache-updated` (commit titled `ex6: ...`)
 
@@ -174,13 +184,15 @@ Exercise 2 design lesson: do not precache what later exercises need to fail. Pre
 
 Open observation carried forward: `registration.register()` failures (syntax or evaluation error) surface as a bare `TypeError` and are filed as kind `unknown`. The same classification gap was fixed for `update()` only. A follow-up commit could map it; the user has not asked for it yet.
 
-## 7. Notes for the next exercise (Exercise 7: network-only, done properly)
+## 7. Notes for the next step (the worker refactor, then Exercise 8: offline navigation and lazy chunks)
 
-From `docs/LEARNING.md`:
+First the refactor (see section 5, Exercise 7, last bullet, and the memory note). Then Exercise 8 from `docs/LEARNING.md`:
 
-- Routes that must never be cached: `/api/signal`, `/api/session`, `/api/ping`, `/api/version`, `/version.json`, `/api/bench/network-only/*`, `/api/push/*`, everything under `/api/_lab/`, and every non-GET. Decide per route: return from the `fetch` listener without `respondWith` (the browser handles it, exactly as with no worker) or `event.respondWith(fetch(event.request))`. For `/api/bench/network-only/*` take the second form and stamp `X-SW-Source: network` (and `X-SW-Strategy: network-only`); leave the rest alone and check in Lab -> Network that nothing changed. Most of this already holds because no rule matches those URLs: the exercise is partly about making it explicit (a test per URL) and about the difference between the two forms (header immutability: a `fetch` Response's headers are immutable, so stamping needs `new Response(response.body, {headers})`, the same as `stamped()`).
-- Things to remember from earlier exercises: the `fetch` listener's order is non-GET, cross-origin, navigation, cache-only, network-first, stale-while-revalidate, cache-first rules; `stamped()`, `tryNetwork`, `lookup`, `store`, `trim` exist. Network-only must not fall back (Server down scenario: the network only row is expected to fail with a network error), must not replace a hanging `/api/signal` (Signal board hangs preset: the page's own Request timeout applies), must not make Hard down readings look live, and a passed-through write must fail as the page sees it (Dropped writes preset), never be retried silently.
-- Lab pages: Bench -> network only card (Source "Network" or "SW network"; **Hits +** is 1 on every fetch from the second reading), Bench -> Scenarios -> Server down, Network -> Server (one `GET /api/signal` row per ~5 s poll), the Signal page ("Possibly cached" with the Sequence, Age on arrival, Source evidence rows). The reachability probe counts a reply as the relay only if it carries `X-Served-By`, so a stored 204 cannot pass for a live server. The doc's break (put `/api/signal` under cache-first once) is the user's own experiment; the "no breakers" rule means no code for it from me.
+- Navigations: `request.mode === 'navigate'`; today `navigate()` is network-first with the stored `/index.html` as fallback and **no timeout** (Lie-fi only delays `/api`, but Hard down destroys navigation sockets too: "online but unreachable"). Add a timeout and decide cache-first-for-the-shell vs the current order; any app route can be answered with the same shell (the router reads `location`). Decide what a failed navigation gets: the cached shell (URL stays, each screen shows its own state) or a redirect to `/offline` (`Response.redirect`; URL changes, the offline page shows link status). The doc says try both.
+- Precache the route chunks (about 85 files), not only the shell: the doc's Do 2. This changes Exercise 2's deliberate decision (shell only, so offline failures exist); ask the user which chunks, and note exercise 4 already stores every visited chunk in `assets-v1` at runtime. `/offline` is already stored under 3 keys; the server answers a navigation with `index.html` only when `Accept: text/html` (`cache.add('/offline')` would get a 404).
+- Navigation Preload: `self.registration.navigationPreload.enable()` in `activate`, read `event.preloadResponse` in the navigation branch (never enable it and ignore the response: the browser fetches every navigation twice). Lab -> Worker -> Registrations -> **Navigation preload** shows "on, header "true"".
+- Releases: an old tab keeps asking for old hashed chunks that `vite build` deleted (404, `chunk-load` error, "Loading failed" banner); keep the previous build's chunks or reload. Fetch the shell with `cache: 'no-cache'` or `'reload'` (HTTP cache trap gives `index.html` a year of `max-age`). Never answer an `/api/*` request with the shell (the page reads it as `parse` / `schema-mismatch`).
+- Lab: Caches -> Precheck (`/offline` HIT, `/` HIT), Errors -> Error simulator -> **Import a missing chunk**, Full-page failures -> **Route chunk**, Chaos -> Stale chunks (with Header profile **No store** first), Hard down, the HTTP cache trap profile.
 
 ## 8. How to update this file
 
