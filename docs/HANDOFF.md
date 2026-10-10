@@ -1,6 +1,6 @@
 # Handoff: Outpost PWA learning project
 
-Living context document. Read this first in a new session, then `docs/LEARNING.md` for the exercise being worked on. It is updated at the end of every exercise (see "How to update this file"). Last updated: Exercise 4 validated by the user and committed (2026-10-10).
+Living context document. Read this first in a new session, then `docs/LEARNING.md` for the exercise being worked on. It is updated at the end of every exercise (see "How to update this file"). Last updated: Exercise 5 validated by the user and committed (2026-10-10).
 
 ## 1. What this project is
 
@@ -64,7 +64,7 @@ The user asked to skip all "breaker" code and the break-it phase. Do not write d
 | 2 | Install, activate, precache the shell | **Done**, validated by the user in 16 browser scenarios; on `origin/main` | `f686a52` |
 | 3 | Cache-only handbook, `delta` miss | **Done**, validated by the user in 16 browser scenarios; the user pushed up to `ac73922`, this commit may still be local | the commit titled `ex3: ...` (a commit cannot contain its own hash; find it with `git log --oneline --grep=ex3`) |
 | 4 | Cache-first media and assets | **Done**, validated by the user in 17 browser scenarios; local, not pushed | the commit titled `ex4: ...` (find it with `git log --oneline --grep=ex4`) |
-| 5 | Network-first with timeout | | |
+| 5 | Network-first with timeout | **Done**, validated by the user in 16 browser scenarios; local, not pushed | the commit titled `ex5: ...` (find it with `git log --oneline --grep=ex5`) |
 | 6 | Stale-while-revalidate, `cache-updated` | | |
 | 7 | Network-only done properly | | |
 | 8 | Offline navigation, chunks | | |
@@ -80,6 +80,18 @@ The user asked to skip all "breaker" code and the break-it phase. Do not write d
 Git log: `cde90b4` initial project setup → `0d61811` ex1 → `f686a52` ex2 → `ac73922` docs → ex3 → ex4 (find the ones without a hash with `git log --oneline`).
 
 ## 5. What exists now
+
+### Exercise 5: network-first with a timeout for the dispatches (commit titled `ex5: ...`)
+
+Decisions the user accepted ("Continue" on the briefing defaults):
+- Routes (`NETWORK_FIRST_PATH`): exactly `GET /api/dispatches` (any query), `/api/dispatches/<id>` (one segment), `/api/inbox/summary`, `/api/digest`. Stored in **`api-v1`** (shared with the bench cache-first route), key = exact URL, **capped at 50 entries (`API_LIMIT`)**, oldest stored first, bench entries count too.
+- Timeout `NETWORK_TIMEOUT_MS = 3000` (shorter than the page's own 10 s). **With a stored copy: at 3 s answer with it (`X-SW-Source: fallback`, `X-SW-Fallback-Reason: timeout`) and let the request run on; if it later finishes good the stored copy is refreshed (`storeLate`) via `waitUntil`. With nothing stored: keep waiting for the network** (aborting a request that would have worked only makes the page fail; the doc's alternative is to abort).
+- Good answer = status 200, JSON content type, and a body that parses as an object, **read from a clone to the last byte inside the time budget** (so a truncated feed, a corrupt body, an empty 200 and a slow body are caught by the worker, not by the page). Falls back on: network error (`network`), timeout, 5xx and 429 (`status-NNN`), HTML 200 (`content-type`), unparseable/empty/broken body (`body`). **401, 403, 404 (any other non-200) pass through untouched** and the stored copy is kept (hiding a 401 would stop the clock-in dialog, a 404 would show a deleted dispatch). The doc says "anything else falls back"; this is a deliberate departure.
+- With nothing stored and a bad answer: the real response goes to the page as it is (stamped `network`); a failed fetch is rethrown, so the page fails exactly as without a worker. Nothing bad is ever stored.
+- Stamps: network answers `X-SW-Source: network`, `X-SW-Strategy: network-first`, `X-SW-Cache: api-v1`; a fallback is the stored copy with `X-SW-Source: fallback`, the extra `X-SW-Fallback-Reason`, and its own `X-SW-Cached-At` and `X-Served-At` (true age; the page's notice reads them). Non-GET, other `/api` routes (`/api/stations`, signal, session, ping, lab) and navigations are untouched. The worker never deletes stored copies after a write: the page's refetch after a mutation refreshes them (known gap: offline right after a mutation shows the pre-mutation copy).
+- Code: `tryNetwork(request, url)` (never rejects; returns `{good}`, `{real}`, `{reason, response}` or `{reason:'network', error}`), `storeLate`, `networkFirst(event, request)`; `lookup`, `store`, `trim`, `stamped`, `readJson` are reused from exercises 3 and 4.
+- Flow effects explained to the user in the briefing (keep in mind when validating): a fallback counts as a successful fetch for React Query (no retries, treated fresh for its stale time); failures stop appearing in Lab -> Errors and retries disappear; the persisted React Query copy ("Restored from this device") and the worker copy ("Stored copy") can both answer; writes are untouched until the exercise 11 outbox. (The briefing also claimed a PATCH built from a stale copy would raise the 412 conflict flow; no page in the site sends a PATCH, only Lab -> Consistency does, so that was dropped from the validation.) Defaults worth remembering: `persistQueryCache` is off by default, `staleTimeSec` 30, `retries` 2, `networkMode` offlineFirst, `showProvenance` on.
+- Tests: `scripts/sw.test.ts` 104 -> 147 (fake `setTimeout`, `delayMs` on a served file). Typecheck, lint, 800 tests pass. Mutation check: removing the pass-through fails 3, the late store 1, the body check 4. Verified over real HTTP against a scratch server on :4011 (stopped by exact PID): warm OK; Lie-fi -> fallback `timeout` after 3001 ms; Hard down `network`; Corrupt JSON, Empty 200, Truncated feed `body`; Captive portal `content-type`; Slow body `timeout`; Rate limited `status-429`; a cold URL under Lie-fi waited 4.2 s and answered `network`; a 404 passes through.
 
 ### Exercise 4: cache-first for media, assets and the bench route (commit titled `ex4: ...`)
 
@@ -150,15 +162,16 @@ Exercise 2 design lesson: do not precache what later exercises need to fail. Pre
 
 Open observation carried forward: `registration.register()` failures (syntax or evaluation error) surface as a bare `TypeError` and are filed as kind `unknown`. The same classification gap was fixed for `update()` only. A follow-up commit could map it; the user has not asked for it yet.
 
-## 7. Notes for the next exercise (Exercise 5: network-first with a timeout, dispatches)
+## 7. Notes for the next exercise (Exercise 6: stale-while-revalidate for stations, and `cache-updated`)
 
 From `docs/LEARNING.md`:
 
-- Routes: `GET /api/dispatches`, `GET /api/dispatches/<id>`, `GET /api/inbox/summary`, `GET /api/digest`. Try the network with a timeout (about 3 s; `apiFetch` itself gives up at 10 s, Lab -> Query -> Settings -> Request timeout, so the worker must be shorter). Answer with a 200 whose `Content-Type` is JSON and store a clone (cache `api-v1`, the name Exercise 4 already uses for the bench route); otherwise answer from `caches.match(request)`; if nothing is stored let the network failure through.
-- Stamp what is returned: `X-SW-Source: network` or `fallback` (the stored copy), `X-SW-Strategy: network-first`, `X-SW-Cache`, and `X-SW-Cached-At` at write time. The page then shows "Stored copy" notices (needs `cache` or `fallback` stamps). `stamped()`, `stampForStorage()`, `store()`/`trim()` helpers already exist in `public/sw.js`; reuse them.
-- Decide: `/api/dispatches` has query strings (cursor, filters, `limit`); the exact URL is the key (as in Exercise 3), so each page and filter is its own entry. Decide whether to cap it. Mutations are non-GET and are left alone. Truncated feed (`/api/dispatches` sends 200 then the socket dies): the failure arrives while the body is read, so the clone given to `store()` rejects and the page must fall back; think about whether the worker should read the body before answering (the Exercise 4 `store()` catch already keeps a bad write from reaching the page).
-- Lab pages: Chaos -> Presets -> Lie-fi (4 to 9 s delay) and Chaos -> Probe (target Dispatch list, 15 s, Fire 5 times); Bench -> Scenarios -> Server down (network-first row: warm copy, "SW fallback") and Stale after bump (network-first row FRESH).
-- Known interaction: Exercise 2's `navigate()` has no timeout; Lie-fi delays `/api` only, not navigation, so Exercise 5 is about API calls. Exercise 8 handles navigation timeouts.
+- Routes: `GET /api/stations`, `GET /api/stations/<code>`, and `/api/bench/stale-while-revalidate/:key`. Answer from the cache at once if there is a copy and start a background fetch inside `event.waitUntil`; with no copy wait for the network and store the result. Cache: `api-v1` (shared; it is capped at 50 by exercise 5, bench and dispatch entries count too, so think about whether stations need their own bucket or a larger cap).
+- Background fetch rules: only a 200 JSON response replaces the stored copy; compare `ETag` (not the status: a `fetch()` returns 200 even when the server said 304) or the body; if it changed store it and post `{ type: 'cache-updated', url: <request path>, strategy, cacheName }`. **Do not post when nothing changed** (the page refetches on the message, the refetch hits the worker, which revalidates and posts again: a loop). A rejected background fetch must not become an unhandled rejection and must not erase the stored copy; Captive portal, Corrupt JSON, Flaky 500 on revalidation are ignored.
+- Posting: `clients.matchAll({ type: 'window' })` or `BroadcastChannel('outpost-sw')`; the page validates and logs worker messages (Lab -> Worker -> Message log, filter **Valid**). A `cache-updated` invalidates queries whose `meta.url` equals the path or sits beneath it on a segment boundary (`/api/stations` also refreshes `/api/stations/<code>`).
+- Stamps: `X-SW-Source: cache`, `X-SW-Strategy: stale-while-revalidate`, `X-SW-Cache`, keep `X-SW-Cached-At`/`X-Served-At`; reuse `stamped`, `lookup`, `store`, `trim`, `stampForStorage`, `readJson`.
+- Lab pages: Bench -> stale while revalidate card (Bump on server, Fetch: STALE by 1 rev from the cache, Fetch again: FRESH), Worker -> Message log, Consistency -> Levers (Change behind React's back, Heal), Stations page chip "SW cache", Query -> Settings -> Stale time 3600 (React Query never asks, so the worker never revalidates: two caches, one believed). The server changes one station every 2 to 4 minutes.
+- Things exercise 5 already established: `store()` swallows write failures, `trim` is FIFO by insertion, a hit is stamped by `stamped()`, an unreadable cache counts as a miss.
 
 ## 8. How to update this file
 

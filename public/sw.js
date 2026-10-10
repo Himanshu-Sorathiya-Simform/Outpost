@@ -9,8 +9,10 @@
 // loads in assets-v1) and for /api/bench/cache-first/:key (api-v1). The cache answers when it has the URL; the network is asked only
 // on a miss, and the answer is stored only if it is what that URL should be. The unhashed files (/favicon.svg, /icons/*, /version.json)
 // are left to the network on purpose: cache first would serve them unchanged forever.
-// Every other /api request still goes to the network. Later exercises add the strategies for the rest, the offline page, versioned
-// cleanup, the update flow, sync and push.
+// Exercise 5: network first, with a 3 second timeout, for GET /api/dispatches, /api/dispatches/<id>, /api/inbox/summary and /api/digest.
+// A good answer is stored in api-v1 and returned; a failure, a timeout or an unusable answer is replaced by the last stored copy,
+// stamped X-SW-Source: fallback. Every other /api request still goes to the network. Later exercises add the strategies for the rest,
+// the offline page, versioned cleanup, the update flow, sync and push.
 //
 // Plain script, no import: this file is copied to dist/sw.js, and vite.config.ts replaces the two tokens below after each build
 // (scripts/sw-inject.ts). It has to be that way round: the browser tells a new worker from the old one by comparing bytes of this
@@ -34,6 +36,13 @@ const API_CACHE = 'api-v1' // API answers stored at runtime (exercise 4: the ben
 
 // New dispatches keep arriving, so media cannot grow for ever. 30 is small enough to watch it trim: ten stations plus two more log pages.
 const MEDIA_LIMIT = 30
+
+// How long the network gets before a stored copy is used instead. It has to stay under the page's own request timeout (Lab -> Query ->
+// Settings -> Request timeout, 10 000 ms by default), or the page gives up before the fallback arrives.
+const NETWORK_TIMEOUT_MS = 3000
+// api-v1 holds one entry per URL: every filter, every "Load more" cursor, every digest `since`. Without a cap it only grows. The
+// bench cache-first entries live in the same cache and count towards it.
+const API_LIMIT = 50
 
 // The cache-only routes. The handbook page and Lab -> Caches look these URLs up by exact name, so they are stored under exactly these.
 const HANDBOOK_URL = '/api/handbook'
@@ -248,6 +257,11 @@ const CACHE_FIRST = [
   { matches: (path) => /^\/api\/bench\/cache-first\/[^/]+$/.test(path), readFrom: [API_CACHE], writeTo: API_CACHE, limit: 0, accepts: isBenchEntry },
 ]
 
+// The network-first routes: exactly the dispatch list, one dispatch, the inbox counters and the digest. A path with another segment
+// after the id is something else and is not matched.
+const NETWORK_FIRST_PATH = /^\/api\/(dispatches(\/[^/]+)?|inbox\/summary|digest)$/
+const NETWORK_FIRST = { readFrom: [API_CACHE], writeTo: API_CACHE, limit: API_LIMIT }
+
 /** The first stored copy of the URL, with the name of the cache it was in. A cache that cannot be read counts as one that has nothing. */
 async function lookup(rule, href) {
   for (const cacheName of rule.readFrom) {
@@ -297,6 +311,77 @@ async function cacheFirst(event, request, rule) {
   return stamped(response, 'network', 'cache-first', rule.writeTo)
 }
 
+/**
+ * One try at the network, finished off completely: the answer is read to its last byte (from a clone) before it counts as good, so a
+ * feed that is cut off half way or dribbled out slowly is caught here and not by the page. It never rejects. The result says which
+ * of four things happened:
+ *   { good: true, response }      a 200 with a JSON body that parses
+ *   { real: true, response }      an answer that is not a failure of the link and must reach the page as it is: a 401, 403, 404, 304
+ *   { reason, response }          a real response that is unusable (5xx, 429, HTML, empty or broken body); the reason names it
+ *   { reason: 'network', error }  fetch() itself failed
+ */
+async function tryNetwork(request, url) {
+  let response
+  try {
+    response = await fetch(request)
+  } catch (error) {
+    return { reason: 'network', error }
+  }
+  if (response.status >= 500 || response.status === 429) return { reason: `status-${response.status}`, response }
+  if (response.status !== 200) return { real: true, response }
+  if (!contentType(response).includes('application/json')) return { reason: 'content-type', response }
+  try {
+    await readJson(response, url.pathname)
+  } catch {
+    return { reason: 'body', response }
+  }
+  return { good: true, response }
+}
+
+/** Stores a late answer, one that arrived after the page had already been given the stored copy. */
+async function storeLate(attempt, url) {
+  const result = await attempt
+  if (result.good) await store(NETWORK_FIRST, url, result.response)
+}
+
+/**
+ * Network first. The network gets NETWORK_TIMEOUT_MS. In time and good: stored from a clone, answered. Otherwise the last stored copy is
+ * answered, stamped fallback with the reason. A timed-out request is not abandoned: it keeps running, and if it finishes well the stored
+ * copy is refreshed for next time. With nothing stored there is nothing to fall back to, so the real outcome goes through: a slow
+ * request is waited for (aborting one that would have worked only makes the page fail), a bad response is handed over as it is, and a
+ * failed fetch fails the same way it would without a worker. A 401, 403 or 404 is a real answer and is never replaced by a stored copy.
+ */
+async function networkFirst(event, request) {
+  const url = new URL(request.url)
+  const attempt = tryNetwork(request, url)
+  let timer
+  const timedOut = new Promise((resolve) => {
+    timer = setTimeout(resolve, NETWORK_TIMEOUT_MS)
+  })
+  const early = await Promise.race([attempt, timedOut])
+  clearTimeout(timer)
+
+  if (early && early.good) {
+    event.waitUntil(store(NETWORK_FIRST, url, early.response.clone()))
+    return stamped(early.response, 'network', 'network-first', API_CACHE)
+  }
+  if (early && early.real) return stamped(early.response, 'network', 'network-first', API_CACHE)
+
+  const reason = early ? early.reason : 'timeout'
+  const found = await lookup(NETWORK_FIRST, url.href)
+  if (found) {
+    if (!early) event.waitUntil(storeLate(attempt, url))
+    const answer = stamped(found.hit, 'fallback', 'network-first', found.cacheName)
+    answer.headers.set('X-SW-Fallback-Reason', reason)
+    return answer
+  }
+
+  const outcome = early || (await attempt)
+  if (outcome.good) event.waitUntil(store(NETWORK_FIRST, url, outcome.response.clone()))
+  if (outcome.response) return stamped(outcome.response, 'network', 'network-first', API_CACHE)
+  throw outcome.error
+}
+
 self.addEventListener('fetch', (event) => {
   const { request } = event
   if (request.method !== 'GET') return
@@ -309,6 +394,10 @@ self.addEventListener('fetch', (event) => {
   }
   if (isCacheOnly(url.pathname)) {
     event.respondWith(cacheOnly(url))
+    return
+  }
+  if (NETWORK_FIRST_PATH.test(url.pathname)) {
+    event.respondWith(networkFirst(event, request))
     return
   }
   // A range request wants part of a file; the stored copy is the whole file, so those go to the network.
