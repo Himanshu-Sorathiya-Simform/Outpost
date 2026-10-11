@@ -34,10 +34,31 @@ describe('install', () => {
     expect(await sw.stores.get(SHELL_CACHE)?.get(`${ORIGIN}${URLS[0]}`)?.text()).toBe('console.log(1)')
   })
 
-  it('calls skipWaiting only after the precache succeeded', async () => {
+  it('finishes the install without calling skipWaiting: a new worker waits until a page tells it to take over', async () => {
     const sw = setup(HEALTHY)
     await sw.install()
+    expect(sw.skipWaiting).not.toHaveBeenCalled()
+    expect(sw.stores.get(SHELL_CACHE)?.size).toBeGreaterThan(0)
+  })
+
+  it('takes over only on the skip-waiting message, and activation itself still claims the pages', async () => {
+    const sw = setup(HEALTHY)
+    await sw.install()
+    await sw.activate()
+    expect(sw.skipWaiting).not.toHaveBeenCalled()
+    let work: Promise<unknown> = Promise.resolve()
+    sw.handler('message')({ data: { type: 'skip-waiting' }, source: { postMessage: () => undefined }, waitUntil: (p: Promise<unknown>) => void (work = p) })
+    await work
     expect(sw.skipWaiting).toHaveBeenCalledTimes(1)
+    expect(sw.claim).toHaveBeenCalledTimes(1)
+  })
+
+  it('ignores a message of another type or without a type, and does not skip waiting for it', async () => {
+    const sw = setup(HEALTHY)
+    for (const data of [{ type: 'skip-waitin' }, {}, null, 'skip-waiting']) {
+      sw.handler('message')({ data, source: null, waitUntil: () => undefined })
+    }
+    expect(sw.skipWaiting).not.toHaveBeenCalled()
   })
 
   it.each([

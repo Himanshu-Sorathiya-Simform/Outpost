@@ -23,9 +23,9 @@
  * media, api and assets buckets on every deploy for no reason. The price: between two bumps a family can hold files of older builds
  * (every build renames every hashed chunk, so `shell` and `assets` collect them) until the next bump or Send clear-caches.
  *
- * Changing one number is a whole release: the new worker installs the new bucket, activates, and deletes the old one. Because of
- * skipWaiting that happens at once, so a tab still running the previous build loses that bucket on its next request (exercise 10 gives
- * that tab a say).
+ * Changing one number is a whole release: the new worker installs the new bucket and waits; when the user applies the update it
+ * activates and deletes the old one. Until then the old worker keeps its old bucket, so the open tabs keep working; the tabs reload at the
+ * switch, because a tab still running the previous build would lose that bucket on its next request.
  */
 export const CACHE_VERSIONS = {
   shell: 1,

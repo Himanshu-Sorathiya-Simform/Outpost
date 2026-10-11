@@ -15,7 +15,7 @@ A strategy uses a caching type, and every cache belongs to exactly one.
 - `src/sw/config.ts`: the cache catalogue (below), the **version of each cache** (`CACHE_VERSIONS`), the allow-list (`CURRENT_CACHES`), the limits and timeouts, the never-cached list.
 - `src/sw/routes.ts`: the route table. Which URL is answered by which strategy and which bucket. Add a route here.
 - `src/sw/fetch.ts`: the `fetch` listener. GET only, same origin; a navigation goes to `navigation.ts`; everything else is looked up in the route table; no route means the browser handles the request.
-- `src/sw/lifecycle.ts`: `install` (precache, then skip waiting) and `activate` (turn on navigation preload, delete the outdated buckets, claim the open pages).
+- `src/sw/lifecycle.ts`: `install` (precache, then wait) and `activate` (turn on navigation preload, delete the outdated buckets, claim the open pages).
 - `src/sw/navigation.ts`: page navigations: network first with a 3 s deadline (using the browser's navigation preload), the stored `/index.html` when the network fails, answers 5xx or is too slow. Reads the shell bucket (`shell-v<N>`).
 - `src/sw/build-info.ts` and `src/sw/env.d.ts`: the two build-time constants (`__BUILD_ID__`, `__PRECACHE_URLS__`) and how the rest of the worker reads them.
 - `src/sw/caching/precache.ts`: the precache type. Downloads and checks the shell, its files and the API data, then writes them, all or nothing.
@@ -26,7 +26,7 @@ A strategy uses a caching type, and every cache belongs to exactly one.
 - `src/sw/lib/headers.ts`: the `X-SW-*` header names (checked against `shared/contracts.ts`) and `stamped()` / `stampForStorage()`.
 - `src/sw/lib/network.ts`: `tryNetwork()` (one try, the whole body read, classified good / real / bad / failed) and `readJson()`.
 - `src/sw/lib/validators.ts`: what a cache-first answer must be before it is stored (`isImage`, `isAsset`, `isBenchEntry`).
-- `src/sw/lib/messages.ts`: what the worker tells the pages (`tellPages`) and the two messages it understands (`get-version`, `clear-caches`).
+- `src/sw/lib/messages.ts`: what the worker tells the pages (`tellPages`) and the three messages it understands (`get-version`, `skip-waiting`, `clear-caches`).
 - `src/sw/lib/scope.ts`: `self` typed as a service worker.
 
 Build and test files live in `scripts/`: `sw-build.ts` (the bundling step, also used by the tests), `sw-shell.ts` (which files are the app shell), `sw-harness.ts` plus one `sw-*.test.ts` per strategy.
@@ -51,7 +51,7 @@ Each name is `<family>-v<N>`; `N` comes from `CACHE_VERSIONS` in `config.ts`, sh
 - **Ours** is a name that is exactly `shell-`, `precache-`, `media-`, `assets-` or `api-` followed by `v` and digits. `api-gateway`, `workbox-precache-v2-...` and `shell-extension-v3` are not ours and are never touched, whatever a message asks for.
 - **`activate`** deletes every bucket of ours that is not on the allow-list, before it claims the pages. A bucket that cannot be deleted is logged and the rest still go. The worker log gets one line naming what was deleted.
 - **`clear-caches`** deletes every bucket of ours, the current ones included (the next offline visit has nothing until a new install precaches). With a `prefix` only those whose name starts with it. The worker log says what went, or that nothing matched.
-- **The release story:** because `install` calls `skipWaiting`, the new worker activates at once. A tab still running the previous build loses the old buckets with it, and its next request for a file only the old build had goes to a server that no longer has it. Exercise 10 gives that tab a say.
+- **The release story:** `install` does not call `skipWaiting`, so a new worker installs, waits, and the old one keeps serving the open tabs with their old buckets. The page's `skip-waiting` message (sent to `registration.waiting` by the Update toast) lets it activate; the cleanup then deletes the old buckets and `claim()` switches the tabs, and every tab that was controlled reloads on `controllerchange` (`src/pwa/registration.ts`). A tab left on the old code would lose the old buckets and fail on its next lazy chunk, which is why they all reload. The very first install has nothing to wait for and activates at once. A bucket whose number did not change is shared by both workers while one waits.
 
 ## Strategy, caching type, buckets
 

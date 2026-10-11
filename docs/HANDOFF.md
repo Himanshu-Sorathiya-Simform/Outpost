@@ -1,6 +1,6 @@
 # Handoff: Outpost PWA learning project
 
-Living context document. Read this first in a new session, then `docs/LEARNING.md` for the exercise being worked on. It is updated at the end of every exercise (see "How to update this file"). Last updated: Exercise 9 (versioned caches and cleanup on activate) validated and committed (2026-10-11); Exercise 10 (the update flow) is next.
+Living context document. Read this first in a new session, then `docs/LEARNING.md` for the exercise being worked on. It is updated at the end of every exercise (see "How to update this file"). Last updated: Exercise 10 (the update flow) validated and committed (2026-10-11); Exercise 11 (Background Sync) is next.
 
 ## 1. What this project is
 
@@ -52,7 +52,7 @@ The user asked to skip all "breaker" code and the break-it phase. Do not write d
 - Commands: `npm run typecheck`, `npm run lint` (ignores `public/`), `npm test` (vitest, includes `src/**/*.test.ts`), `npm run pwa`, `npx vite build`, `npm run release` (bumps the version, rebuilds).
 - Claude's own checks after code changes: typecheck, lint, full tests. A build into a scratch directory (`npx vite build --outDir <scratch> --emptyOutDir`) can prove `public/` files are emitted without touching the user's `dist/`.
 - Server inspection from the shell (all under `/api/_lab/*`, never chaos'd): `GET /api/_lab/log?since=0` (request log, ring of 500; shows `dest`, `tab`, `notes`, status 0 = socket dropped), `GET /api/_lab/state`, `GET /api/_lab/chaos`, `POST /api/_lab/chaos/preset/all-clear`, `POST /api/_lab/reset`.
-- Test baseline: 615 tests at the start, 639 after exercise 1 (45 files), 675 after exercise 2 (47 files; 715 after exercise 3; `scripts/**/*.test.ts` is now in the vitest include), 879 after the worker refactor (54 files), 930 after exercise 9 (56 files; 914 after exercise 8, 55 files; the worker tests are 225 of them before exercise 8, split per strategy in `scripts/sw-*.test.ts`).
+- Test baseline: 615 tests at the start, 639 after exercise 1 (45 files), 675 after exercise 2 (47 files; 715 after exercise 3; `scripts/**/*.test.ts` is now in the vitest include), 879 after the worker refactor (54 files), 949 after exercise 10 (56 files; 930 after exercise 9; 914 after exercise 8, 55 files; the worker tests are 225 of them before exercise 8, split per strategy in `scripts/sw-*.test.ts`).
 - **Never stop processes with `pkill -f` or `killall` by pattern.** The user's `npm run pwa` server (`tsx server/index.ts`) matches the same pattern as any scratch server and was killed once this way. If a scratch server is needed, start it on another port with `& echo $!` and kill that exact PID, or prefer the vitest sandbox. After any server work, check `curl localhost:4000/api/ping`. If the user's server was lost, they restart with `npm run pwa` (it also rebuilds `dist/`).
 - Product conventions in `src/`: strict TS, no `any`, no `@ts-ignore`, no `console.log`, no emoji, `import type` for types. `public/` is outside lint and type checks, is not bundled and cannot import `shared/*.ts`.
 
@@ -69,7 +69,7 @@ The user asked to skip all "breaker" code and the break-it phase. Do not write d
 | 7 | Network-only done properly | **Done** in code and tests; the user chose to skip separate browser scenarios (little is visible: the Bench network only card reads "SW network"); three browser checks are folded into the validation after the refactor | the commit titled `ex7: ...` (find it with `git log --oneline --grep=ex7`) |
 | 8 | Offline navigation, chunks | **Done**, validated by the user in 11 browser scenarios; local, not pushed | the commit titled `ex8: ...` (find it with `git log --oneline --grep=ex8`) |
 | 9 | Versioned caches, cleanup | **Done**, validated by the user in 12 browser scenarios; local, not pushed | the commit titled `ex9: ...` (find it with `git log --oneline --grep=ex9`) |
-| 10 | The update flow | | |
+| 10 | The update flow | **Done**, validated by the user in 11 browser scenarios; local, not pushed | the commit titled `ex10: ...` (find it with `git log --oneline --grep=ex10`) |
 | 11 | Background Sync outbox | | |
 | 12 | Push, `notificationclick` | | |
 | 13 | Badge and consistency | | |
@@ -80,6 +80,17 @@ The user asked to skip all "breaker" code and the break-it phase. Do not write d
 Git log: `cde90b4` initial project setup → `0d61811` ex1 → `f686a52` ex2 → `ac73922` docs → ex3 → ex4 → ex5 → ex6 → `6cebb35` ex7 → the worker refactor (`git log --oneline` has the hashes; `origin/main` is at `ac73922` unless the user pushed since).
 
 ## 5. What exists now
+
+### Exercise 10: the update flow, end to end (commit titled `ex10: ...`)
+
+Decisions the user accepted ("Continue" on the briefing defaults):
+- **`install` no longer calls `skipWaiting()`.** A new worker installs, then waits behind the active one, which keeps serving the open tabs with its buckets (so exercise 9's "old tab asks for a deleted chunk" failure is gone; the cleanup runs at apply time). The first install has no active worker and activates by itself. A bucket whose number did not change is shared by both workers while one waits (the waiting install already added its files to it); a bumped number isolates them and shows `v1` and `v2` side by side with the `v1` superseded.
+- **Worker side:** `src/sw/lib/messages.ts` handles `{ type: 'skip-waiting' }` from any sender with `scope.skipWaiting()` (a no-op on an already-active worker, which is why Lab -> Worker -> Send skip-waiting, which posts to the controller, stays inert on purpose).
+- **`src/pwa/registration.ts`:** `mirror()` derives `updateAvailable = Boolean(reg.waiting && navigator.serviceWorker.controller)` every time it copies the registration (so a page that opens with a waiting worker, a replaced waiting worker and the worker taking over all just work; no controller means a first install, not an update). `applyUpdate()` posts `skip-waiting` to `registration.waiting` and throws `InvalidStateError` when nothing waits. `watchController()` (one listener per `navigator.serviceWorker`, attached from `watch()` and `startBrowserSync()`) re-mirrors on `controllerchange` and reloads when the controller changes from one worker to another, in every tab that was controlled (compose drafts autosave after 600 ms); no reload when there was no controller before, none now, once already, or within 10 s (`sessionStorage` key `outpost-sw-reloaded-at`, so DevTools "Update on reload" cannot loop; unreadable storage still reloads once).
+- **Comments** updated in `lifecycle.ts`, `config.ts`, `messages.ts`, `registration.ts`, `docs/WORKER.md` (release story).
+- **Tests:** 19 new (`src/pwa/registration.test.ts`: the flag in six situations, `applyUpdate` target and errors, reload rules; `scripts/sw-install.test.ts`: install without skipWaiting, `skip-waiting` takes over, other messages ignored). The fake container in the registration tests is now an `EventTarget` with a `controller`, and stubs `location.reload` and `sessionStorage`. Mutation check: posting to the controller, no "had a controller" guard, no 10 s guard and ignoring the controller in the flag each fail one test.
+- **Verified in headless Chrome** (Playwright, scratch server :4020 with `OUTPOST_DIST_DIR`, stopped by exact PID): first install does not reload the page; a second build leaves `waiting: installed` beside `active`, the toast shows, both tabs still report the old build id; Update reloads both tabs once, both report the new build id, the toast is gone.
+- **Known:** the toast's "not wired up yet" branch in `src/shell/banners/SwUpdateToast.tsx` is now dead code (left alone); the user chose to reload every tab, not only the one that pressed Update.
 
 ### Exercise 9: versioned caches and cleanup on activate (commit titled `ex9: ...`)
 
@@ -217,13 +228,14 @@ Exercise 2 design lesson: do not precache what later exercises need to fail. Pre
 
 Open observation carried forward: `registration.register()` failures (syntax or evaluation error) surface as a bare `TypeError` and are filed as kind `unknown`. The same classification gap was fixed for `update()` only. A follow-up commit could map it; the user has not asked for it yet.
 
-## 7. Notes for the next exercise (Exercise 10: the update flow, end to end)
+## 7. Notes for the next exercise (Exercise 11: Background Sync, the outbox for new dispatches)
 
-Read `docs/LEARNING.md` Exercise 10 first. Starting points in the code:
+Read `docs/LEARNING.md` Exercise 11 first (the outbox, `sync` event, `src/pwa/sync.ts` stubs, `shared/sw-protocol.ts` `OutboxItem`, `OUTBOX_DB`, `SYNC_TAG_OUTBOX`, the `sync-complete` message). Starting points in the code:
 
-- `install()` in `src/sw/lifecycle.ts` calls `skipWaiting()` after the precache; the comment there says exercise 10 takes it out and makes it a choice. The `skip-waiting` page-to-worker message is not handled yet (`src/sw/lib/messages.ts` `onMessage`); the update toast calls `registration.applyUpdate()`; Lab -> Worker -> Actions has Check for update, Apply update and Send skip-waiting.
-- Exercise 9 consequence to fix here: with a waiting worker (no skipWaiting) the old tab keeps its old caches until the user applies the update, because activate (and with it the cleanup) only runs then. That removes the "old tab asks for a deleted chunk" failure (scenario 8 of exercise 9) and makes the old and new generations visible side by side in Lab -> Caches (superseded tags) while the new worker waits.
-- Cleanup, versions and the catalogue are in `src/sw/config.ts` and `src/sw/caching/cleanup.ts`; update the comments of `lifecycle.ts` and `docs/WORKER.md` if the install/activate story changes.
+- The worker has no `sync` listener yet: `src/sw/index.ts` registers install, activate, fetch and message; a new listener belongs there, its logic in a new file (`src/sw/sync.ts` or under `caching/`-like folder of its own, with the standard header: what it holds / what it means / caching type / caches touched), and `docs/WORKER.md` gets the new file.
+- `tellPages` (`src/sw/lib/messages.ts`) already posts `SwToPage` messages; `sync-complete` is in the contract.
+- The never-cached list and the rule that a request that is not a GET is never answered by the worker (`src/sw/fetch.ts`) matter: replaying a POST is done by the sync handler itself, not by the fetch listener.
+- Every build is a new worker that now WAITS; an update needs the toast (or a first install) before new worker code runs, so tell the user to press Update after each rebuild when validating.
 
 ## 8. How to update this file
 

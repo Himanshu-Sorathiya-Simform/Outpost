@@ -2,8 +2,8 @@
 // What it means: a worker and a page are separate programs that talk by posting messages. The shapes of the messages are fixed by
 //                shared/sw-protocol.ts, which the page validates and logs (Lab -> Worker -> Message log). The worker sends
 //                "cache-updated" (a stored copy changed, refetch), "log" (a line for the worker log) and "sw-version" (the reply to
-//                "get-version"). It understands "get-version" and "clear-caches" from the page; the other page-to-worker messages are for
-//                later exercises.
+//                "get-version"). It understands "get-version", "skip-waiting" and "clear-caches" from the page; the other page-to-worker
+//                messages are for later exercises.
 // Caching type:  none.
 // Caches touched: none directly (the version reply lists the bucket names that exist; clear-caches deletes buckets through caching/cleanup.ts).
 
@@ -45,10 +45,20 @@ async function clearCaches(prefix: string | undefined): Promise<void> {
   }
 }
 
+/**
+ * "skip-waiting": the page pressed Update. A worker that is waiting takes over now (it activates, which deletes the outdated buckets and
+ * claims the tabs; every controlled tab then reloads). The page must send it to registration.waiting: sent to the controller, which is the
+ * old worker, it does nothing, because skipWaiting() on a worker that is already active has no effect (Lab -> Worker -> Send skip-waiting).
+ */
+async function takeOver(): Promise<void> {
+  await scope.skipWaiting()
+}
+
 /** Every other message is ignored. */
 export function onMessage(event: ExtendableMessageEvent): void {
   const data = event.data as { type?: unknown; prefix?: unknown } | null
   if (!data) return
   if (data.type === 'get-version') event.waitUntil(replyWithVersion(event.source))
+  else if (data.type === 'skip-waiting') event.waitUntil(takeOver())
   else if (data.type === 'clear-caches' && (data.prefix === undefined || typeof data.prefix === 'string')) event.waitUntil(clearCaches(data.prefix))
 }

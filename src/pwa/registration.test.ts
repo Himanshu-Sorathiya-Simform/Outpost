@@ -58,23 +58,33 @@ class FakeRegistration extends EventTarget {
 const asReg = (r: FakeRegistration): ServiceWorkerRegistration => r as unknown as ServiceWorkerRegistration
 
 /** A stand-in for navigator.serviceWorker that remembers what register() was asked for and lists what exists. */
-function installFakeContainer(existing: FakeRegistration[] = []) {
+function installFakeContainer(existing: FakeRegistration[] = [], options: { controlled?: boolean } = {}) {
   const regs = [...existing]
-  const container = {
+  // A real container is an EventTarget with a `controller`: the worker that controls this page, or null.
+  const container = Object.assign(new EventTarget(), {
+    controller: (options.controlled ? new FakeWorker('activated') : null) as FakeWorker | null,
     register: vi.fn(async (_url: string) => {
       const reg = regs[0] ?? new FakeRegistration()
       if (!regs.includes(reg)) regs.push(reg)
       return asReg(reg)
     }),
     getRegistrations: vi.fn(async () => regs.map(asReg)),
-  }
+  })
+  const stored = new Map<string, string>()
+  const reload = vi.fn()
   vi.stubGlobal('navigator', { serviceWorker: container })
-  vi.stubGlobal('location', { href: 'http://localhost:4000/log' })
-  return { container, regs }
+  vi.stubGlobal('location', { href: 'http://localhost:4000/log', reload })
+  vi.stubGlobal('sessionStorage', { getItem: (k: string) => stored.get(k) ?? null, setItem: (k: string, v: string) => void stored.set(k, v) })
+  /** What the browser does when a new worker takes over: the controller changes, then `controllerchange` fires. */
+  const takeOver = (next: FakeWorker | null): void => {
+    container.controller = next
+    container.dispatchEvent(new Event('controllerchange'))
+  }
+  return { container, regs, reload, stored, takeOver }
 }
 
 beforeEach(() => {
-  setPwa({ swRegistered: false, swState: 'none' })
+  setPwa({ swRegistered: false, swState: 'none', updateAvailable: false })
 })
 
 afterEach(() => {
@@ -269,5 +279,180 @@ describe('syncFromBrowser', () => {
     setPwa({ swRegistered: true, swState: 'active' })
     await syncFromBrowser()
     expect(usePwaStore.getState().swState).toBe('active')
+  })
+})
+
+describe('updateAvailable', () => {
+  it('is false for a first install that is waiting: there is no controller, so it is not an update', async () => {
+    const reg = new FakeRegistration()
+    reg.waiting = new FakeWorker('installed')
+    installFakeContainer([reg], { controlled: false })
+    await registration.register()
+    expect(usePwaStore.getState()).toMatchObject({ swState: 'waiting', updateAvailable: false })
+  })
+
+  it('is true when the page opens with a worker already waiting behind the one that controls it', async () => {
+    const reg = new FakeRegistration()
+    reg.active = new FakeWorker('activated')
+    reg.waiting = new FakeWorker('installed')
+    installFakeContainer([reg], { controlled: true })
+    await registration.register()
+    expect(usePwaStore.getState().updateAvailable).toBe(true)
+  })
+
+  it('turns true when a new worker finishes installing behind an active one, and false again when it takes over', async () => {
+    const reg = new FakeRegistration()
+    const old = new FakeWorker('activated')
+    reg.active = old
+    const { takeOver } = installFakeContainer([reg], { controlled: true })
+    await registration.register()
+    expect(usePwaStore.getState().updateAvailable).toBe(false)
+
+    const incoming = new FakeWorker('installing')
+    reg.installing = incoming
+    reg.dispatchEvent(new Event('updatefound'))
+    expect(usePwaStore.getState().updateAvailable).toBe(false)
+
+    reg.installing = null
+    reg.waiting = incoming
+    incoming.moveTo('installed')
+    expect(usePwaStore.getState().updateAvailable).toBe(true)
+
+    reg.waiting = null
+    reg.active = incoming
+    incoming.moveTo('activating')
+    takeOver(incoming)
+    await vi.waitFor(() => expect(usePwaStore.getState().updateAvailable).toBe(false))
+  })
+
+  it('goes false when the waiting worker is replaced by one that fails (the slot empties)', async () => {
+    const reg = new FakeRegistration()
+    reg.active = new FakeWorker('activated')
+    const waiting = new FakeWorker('installed')
+    reg.waiting = waiting
+    installFakeContainer([reg], { controlled: true })
+    await registration.register()
+    expect(usePwaStore.getState().updateAvailable).toBe(true)
+    reg.waiting = null
+    waiting.moveTo('redundant')
+    expect(usePwaStore.getState().updateAvailable).toBe(false)
+  })
+
+  it('is false once the registration is gone', async () => {
+    const reg = new FakeRegistration()
+    reg.active = new FakeWorker('activated')
+    reg.waiting = new FakeWorker('installed')
+    installFakeContainer([reg], { controlled: true })
+    await registration.register()
+    await registration.unregister()
+    expect(usePwaStore.getState().updateAvailable).toBe(false)
+  })
+})
+
+describe('registration.applyUpdate', () => {
+  it('posts skip-waiting to the WAITING worker, not to the controller', async () => {
+    const reg = new FakeRegistration()
+    reg.active = new FakeWorker('activated')
+    reg.waiting = new FakeWorker('installed')
+    const { container } = installFakeContainer([reg], { controlled: true })
+    const toWaiting = vi.fn()
+    const toController = vi.fn()
+    ;(reg.waiting as unknown as { postMessage: unknown }).postMessage = toWaiting
+    ;(container.controller as unknown as { postMessage: unknown }).postMessage = toController
+
+    await registration.applyUpdate()
+
+    expect(toWaiting).toHaveBeenCalledExactlyOnceWith({ type: 'skip-waiting' })
+    expect(toController).not.toHaveBeenCalled()
+  })
+
+  it('says so when no worker is waiting, instead of reporting an update that did not happen', async () => {
+    const reg = new FakeRegistration()
+    reg.active = new FakeWorker('activated')
+    installFakeContainer([reg], { controlled: true })
+    await expect(registration.applyUpdate()).rejects.toMatchObject({ name: 'InvalidStateError' })
+  })
+
+  it('says so when nothing is registered', async () => {
+    installFakeContainer([])
+    await expect(registration.applyUpdate()).rejects.toMatchObject({ name: 'InvalidStateError' })
+  })
+
+  it('reports NotSupportedError where the API is missing', async () => {
+    vi.stubGlobal('navigator', {})
+    await expect(registration.applyUpdate()).rejects.toMatchObject({ name: 'NotSupportedError' })
+  })
+})
+
+describe('reloading on controllerchange', () => {
+  async function started(controlled: boolean) {
+    const reg = new FakeRegistration()
+    reg.active = new FakeWorker('activated')
+    const env = installFakeContainer([reg], { controlled })
+    await registration.register()
+    return env
+  }
+
+  it('reloads once when one worker replaces another', async () => {
+    const { takeOver, reload } = await started(true)
+    takeOver(new FakeWorker('activated'))
+    expect(reload).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not reload for a first install claiming the page (there was no controller before)', async () => {
+    const { takeOver, reload } = await started(false)
+    takeOver(new FakeWorker('activated'))
+    expect(reload).not.toHaveBeenCalled()
+  })
+
+  it('does not reload when the controller goes away (an unregistered worker)', async () => {
+    const { takeOver, reload } = await started(true)
+    takeOver(null)
+    expect(reload).not.toHaveBeenCalled()
+  })
+
+  it('reloads only once if controllerchange fires twice', async () => {
+    const { takeOver, reload } = await started(true)
+    takeOver(new FakeWorker('activated'))
+    takeOver(new FakeWorker('activated'))
+    expect(reload).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not reload again within ten seconds of a reload this tab already did (a worker that takes over on every load)', async () => {
+    const { takeOver, reload, stored } = await started(true)
+    stored.set('outpost-sw-reloaded-at', String(Date.now() - 2000))
+    takeOver(new FakeWorker('activated'))
+    expect(reload).not.toHaveBeenCalled()
+  })
+
+  it('reloads again when the last reload was long ago', async () => {
+    const { takeOver, reload, stored } = await started(true)
+    stored.set('outpost-sw-reloaded-at', String(Date.now() - 60_000))
+    takeOver(new FakeWorker('activated'))
+    expect(reload).toHaveBeenCalledTimes(1)
+  })
+
+  it('still reloads (once) when session storage cannot be used', async () => {
+    const { takeOver, reload } = await started(true)
+    vi.stubGlobal('sessionStorage', {
+      getItem: () => {
+        throw new DOMException('blocked', 'SecurityError')
+      },
+      setItem: () => {
+        throw new DOMException('blocked', 'SecurityError')
+      },
+    })
+    takeOver(new FakeWorker('activated'))
+    takeOver(new FakeWorker('activated'))
+    expect(reload).toHaveBeenCalledTimes(1)
+  })
+
+  it('attaches the listener once however often register() runs', async () => {
+    const { takeOver, reload, container } = await started(true)
+    await registration.register()
+    await registration.register()
+    takeOver(new FakeWorker('activated'))
+    expect(reload).toHaveBeenCalledTimes(1)
+    expect(container.controller).not.toBeNull()
   })
 })
