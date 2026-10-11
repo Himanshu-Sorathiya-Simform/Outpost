@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import vm from 'node:vm'
+import { IDBFactory, IDBDatabase } from 'fake-indexeddb'
 import { vi } from 'vitest'
 import { bundleWorker } from './sw-build'
 
@@ -69,6 +70,13 @@ export function setup(served: Record<string, Served>, urls: readonly string[] = 
   const claim = vi.fn(() => Promise.resolve())
   const enablePreload = vi.fn((): Promise<void> => Promise.resolve())
   const posted: unknown[] = []
+  /** What the worker posted on a BroadcastChannel, as { channel, message }. */
+  const channelPosts: Array<{ channel: string; message: unknown }> = []
+  /** The worker's own IndexedDB: one per setup, empty. */
+  const indexedDb = new IDBFactory()
+  /** Web Locks: one holder at a time per name, the others queue. `lockNames` records every request. */
+  const lockTails = new Map<string, Promise<unknown>>()
+  const lockNames: string[] = []
   let offline = false
   let unreadable = false
   let writesFail = false
@@ -196,6 +204,24 @@ export function setup(served: Record<string, Served>, urls: readonly string[] = 
       clients: { claim, matchAll: async () => windows },
     },
     caches: fakeCaches,
+    indexedDB: indexedDb,
+    navigator: {
+      locks: {
+        request: async (name: string, callback: () => Promise<unknown>) => {
+          lockNames.push(name)
+          const run = (lockTails.get(name) ?? Promise.resolve()).then(() => callback())
+          lockTails.set(name, run.catch(() => undefined))
+          return run
+        },
+      },
+    },
+    BroadcastChannel: class {
+      constructor(private readonly name: string) {}
+      postMessage(message: unknown): void {
+        channelPosts.push({ channel: this.name, message })
+      }
+      close(): void {}
+    },
     fetch: fakeFetch,
     Request: SandboxRequest,
     Response,
@@ -261,6 +287,9 @@ export function setup(served: Record<string, Served>, urls: readonly string[] = 
     claim,
     enablePreload,
     posted,
+    channelPosts,
+    indexedDb,
+    lockNames,
     setOffline: (value: boolean) => void (offline = value),
     setCacheUnreadable: (value: boolean) => void (unreadable = value),
     setWritesFail: (value: boolean) => void (writesFail = value),
@@ -304,3 +333,47 @@ export const HEALTHY: Record<string, Served> = {
 }
 
 export const text = async (r: Response | 'not handled'): Promise<string> => (r === 'not handled' ? 'not handled' : r.text())
+
+/** The records in a worker's outbox (raw IndexedDB, so a test does not depend on the code it checks). */
+export async function readOutbox(sw: { indexedDb: InstanceType<typeof IDBFactory> }): Promise<Array<Record<string, unknown>>> {
+  const database = await new Promise<InstanceType<typeof IDBDatabase>>((resolve, reject) => {
+    const request = sw.indexedDb.open('outpost-outbox', 1)
+    request.onupgradeneeded = () => request.result.createObjectStore('outbox', { keyPath: 'id' })
+    request.onsuccess = () => resolve(request.result)
+    request.onerror = () => reject(request.error)
+  })
+  const all = await new Promise<Array<Record<string, unknown>>>((resolve) => {
+    const request = database.transaction('outbox').objectStore('outbox').getAll()
+    request.onsuccess = () => resolve(request.result as Array<Record<string, unknown>>)
+  })
+  database.close()
+  return all.sort((a, b) => String(a.createdAt).localeCompare(String(b.createdAt)))
+}
+
+/** Puts records into a worker's outbox, as the page would have. */
+export async function seedOutbox(sw: { indexedDb: InstanceType<typeof IDBFactory> }, records: Array<Record<string, unknown>>): Promise<void> {
+  const database = await new Promise<InstanceType<typeof IDBDatabase>>((resolve, reject) => {
+    const request = sw.indexedDb.open('outpost-outbox', 1)
+    request.onupgradeneeded = () => request.result.createObjectStore('outbox', { keyPath: 'id' })
+    request.onsuccess = () => resolve(request.result)
+    request.onerror = () => reject(request.error)
+  })
+  await new Promise<void>((resolve, reject) => {
+    const transaction = database.transaction('outbox', 'readwrite')
+    for (const record of records) transaction.objectStore('outbox').put(record)
+    transaction.oncomplete = () => resolve()
+    transaction.onerror = () => reject(transaction.error)
+  })
+  database.close()
+}
+
+/** A queued record, as the page writes it. */
+export const queuedRecord = (id: string, patch: Record<string, unknown> = {}): Record<string, unknown> => ({
+  id,
+  createdAt: '2026-01-01T00:00:00.000Z',
+  attempts: 0,
+  status: 'queued',
+  lastError: null,
+  payload: { clientId: id, stationId: 'KRN-07', title: `Dispatch ${id}`, body: 'Body', severity: 'routine', tags: [], coords: null },
+  ...patch,
+})

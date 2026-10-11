@@ -1,6 +1,6 @@
 # Handoff: Outpost PWA learning project
 
-Living context document. Read this first in a new session, then `docs/LEARNING.md` for the exercise being worked on. It is updated at the end of every exercise (see "How to update this file"). Last updated: Exercise 10 (the update flow) validated and committed (2026-10-11); Exercise 11 (Background Sync) is next.
+Living context document. Read this first in a new session, then `docs/LEARNING.md` for the exercise being worked on. It is updated at the end of every exercise (see "How to update this file"). Last updated: Exercise 11 (Background Sync outbox) validated and committed (2026-10-11); Exercise 12 (push notifications) is next.
 
 ## 1. What this project is
 
@@ -52,7 +52,7 @@ The user asked to skip all "breaker" code and the break-it phase. Do not write d
 - Commands: `npm run typecheck`, `npm run lint` (ignores `public/`), `npm test` (vitest, includes `src/**/*.test.ts`), `npm run pwa`, `npx vite build`, `npm run release` (bumps the version, rebuilds).
 - Claude's own checks after code changes: typecheck, lint, full tests. A build into a scratch directory (`npx vite build --outDir <scratch> --emptyOutDir`) can prove `public/` files are emitted without touching the user's `dist/`.
 - Server inspection from the shell (all under `/api/_lab/*`, never chaos'd): `GET /api/_lab/log?since=0` (request log, ring of 500; shows `dest`, `tab`, `notes`, status 0 = socket dropped), `GET /api/_lab/state`, `GET /api/_lab/chaos`, `POST /api/_lab/chaos/preset/all-clear`, `POST /api/_lab/reset`.
-- Test baseline: 615 tests at the start, 639 after exercise 1 (45 files), 675 after exercise 2 (47 files; 715 after exercise 3; `scripts/**/*.test.ts` is now in the vitest include), 879 after the worker refactor (54 files), 949 after exercise 10 (56 files; 930 after exercise 9; 914 after exercise 8, 55 files; the worker tests are 225 of them before exercise 8, split per strategy in `scripts/sw-*.test.ts`).
+- Test baseline: 615 tests at the start, 639 after exercise 1 (45 files), 675 after exercise 2 (47 files; 715 after exercise 3; `scripts/**/*.test.ts` is now in the vitest include), 879 after the worker refactor (54 files), 1016 after exercise 11 (61 files; 949 after exercise 10; 930 after exercise 9; 914 after exercise 8, 55 files; the worker tests are 225 of them before exercise 8, split per strategy in `scripts/sw-*.test.ts`).
 - **Never stop processes with `pkill -f` or `killall` by pattern.** The user's `npm run pwa` server (`tsx server/index.ts`) matches the same pattern as any scratch server and was killed once this way. If a scratch server is needed, start it on another port with `& echo $!` and kill that exact PID, or prefer the vitest sandbox. After any server work, check `curl localhost:4000/api/ping`. If the user's server was lost, they restart with `npm run pwa` (it also rebuilds `dist/`).
 - Product conventions in `src/`: strict TS, no `any`, no `@ts-ignore`, no `console.log`, no emoji, `import type` for types. `public/` is outside lint and type checks, is not bundled and cannot import `shared/*.ts`.
 
@@ -70,7 +70,7 @@ The user asked to skip all "breaker" code and the break-it phase. Do not write d
 | 8 | Offline navigation, chunks | **Done**, validated by the user in 11 browser scenarios; local, not pushed | the commit titled `ex8: ...` (find it with `git log --oneline --grep=ex8`) |
 | 9 | Versioned caches, cleanup | **Done**, validated by the user in 12 browser scenarios; local, not pushed | the commit titled `ex9: ...` (find it with `git log --oneline --grep=ex9`) |
 | 10 | The update flow | **Done**, validated by the user in 11 browser scenarios; local, not pushed | the commit titled `ex10: ...` (find it with `git log --oneline --grep=ex10`) |
-| 11 | Background Sync outbox | | |
+| 11 | Background Sync outbox | **Done**, validated by the user in 10 browser scenarios (Chrome); local, not pushed | the commit titled `ex11: ...` (find it with `git log --oneline --grep=ex11`) |
 | 12 | Push, `notificationclick` | | |
 | 13 | Badge and consistency | | |
 | 14 | Periodic Background Sync | | |
@@ -80,6 +80,19 @@ The user asked to skip all "breaker" code and the break-it phase. Do not write d
 Git log: `cde90b4` initial project setup → `0d61811` ex1 → `f686a52` ex2 → `ac73922` docs → ex3 → ex4 → ex5 → ex6 → `6cebb35` ex7 → the worker refactor (`git log --oneline` has the hashes; `origin/main` is at `ac73922` unless the user pushed since).
 
 ## 5. What exists now
+
+### Exercise 11: Background Sync, the outbox for new dispatches (commit titled `ex11: ...`)
+
+Decisions the user accepted ("Continue" on the briefing defaults):
+- **One replay module for page and worker:** `src/outbox/` (`names.ts`, `store.ts`, `replay.ts`, `announce.ts`), imported by `src/pwa/sync.ts` and `src/sw/sync.ts`. The names are copied from `shared/sw-protocol.ts` (that file builds zod schemas, which the worker bundle must not carry; `names.test.ts` checks the copies; the bundle size limit in `sw-build.test.ts` went 40 kB -> 80 kB, the zod guard is the regex). Plain checks, no zod.
+- **`store.ts`:** IndexedDB `outpost-outbox` / `outbox`, key path `id`, one transaction per call resolved on commit, connection closed each time. `addIfAbsent` returns the existing record and never resets one being sent.
+- **`replay.ts`:** `replayOutbox(statuses)` under `navigator.locks` (`outpost-outbox-flush`; runs unlocked where Web Locks are missing). `classify()`: 201 or 200 + `Idempotent-Replay` with a JSON body -> delete (succeeded); 401, 403, 400, 422 and other 4xx but 408/429 -> `failed` with the server's message; 429 -> back to `queued`, stop the run; 5xx, 408, an unexpected 2xx, a non-JSON 2xx -> `queued`; fetch rejects -> `queued`, stop. `sending` and `attempts + 1` are written BEFORE the POST. Result `{succeeded, failed, waiting, stoppedBecause}`; `sync-complete.failed` = failed + waiting (the page toast reads it as "still waiting").
+- **`src/sw/sync.ts`:** `sync` listener (fifth listener in `index.ts`, a plain `Event` cast to the local `SyncEvent` type) for tag `outbox-flush`: replays `queued` + `sending`; tells every window and the `outpost-sw` channel; REJECTS while something waits so the browser reschedules; on `lastChance` marks the waiting ones `failed` ("Gave up after N tries: ...") and resolves. The `sync` event does not replay `failed` records.
+- **`src/pwa/sync.ts`:** `queueDispatch` (payload gets `tags: []`, `coords: null` defaults, registers the tag best effort: no registration, no SyncManager or a throwing `register()` still keep the record and only warn), `listQueued`, `removeQueued` (each recounts `queuedCount`), `flushNow` (replays all three statuses, announces `sync-complete` on the `outpost-sw` BroadcastChannel so the toast, refetch and recount are identical to a worker run). `bootPwa` reads the count after registering.
+- **Tests:** 85 new (`src/outbox/*.test.ts`, `src/pwa/sync.test.ts`, `scripts/sw-sync.test.ts`); new dev dependency `fake-indexeddb`; the harness got a fake IndexedDB, Web Locks and BroadcastChannel plus `readOutbox` / `seedOutbox` / `queuedRecord`. 1016 tests, typecheck and lint clean. Mutation checks (no `sending` write, no stop on 429, no lock, accepting any 200, no give-up on last chance, no reject) each fail tests.
+- **Verified in headless Chrome** (Playwright, scratch servers :4021 / :4022, stopped by exact PID): filing offline queues and lands on /drafts with QUEUE 1; a CDP `ServiceWorker.dispatchSyncEvent` sends it and the server total grows by one; an expired session marks a record `failed` with the server's message; Retry all now sends after clocking in; the same key a second time is deleted and the total does not grow. Updating an Exercise 10 worker to this build works through the toast.
+- **Browser behaviour the user saw:** in Chrome the sync event fired as soon as DevTools Offline was unticked and sent the dispatch; in Edge it did not fire (neither naturally nor from the DevTools Sync box), while Retry all now worked, so the worker path may depend on the browser. In headless Chrome `registration.sync.register()` throws "Background Sync is disabled" (the record stays queued, a warning is logged). The first Retry all now without a session showed the clock-in error and a `failed` row, as designed.
+- **Not tested for real:** a browser with no SyncManager (Safari, Firefox): the unit tests cover the missing `registration.sync` path.
 
 ### Exercise 10: the update flow, end to end (commit titled `ex10: ...`)
 
@@ -228,14 +241,14 @@ Exercise 2 design lesson: do not precache what later exercises need to fail. Pre
 
 Open observation carried forward: `registration.register()` failures (syntax or evaluation error) surface as a bare `TypeError` and are filed as kind `unknown`. The same classification gap was fixed for `update()` only. A follow-up commit could map it; the user has not asked for it yet.
 
-## 7. Notes for the next exercise (Exercise 11: Background Sync, the outbox for new dispatches)
+## 7. Notes for the next exercise (Exercise 12: Push notifications, `notificationclick`, silent pushes)
 
-Read `docs/LEARNING.md` Exercise 11 first (the outbox, `sync` event, `src/pwa/sync.ts` stubs, `shared/sw-protocol.ts` `OutboxItem`, `OUTBOX_DB`, `SYNC_TAG_OUTBOX`, the `sync-complete` message). Starting points in the code:
+Read `docs/LEARNING.md` Exercise 12 first (`src/pwa/notifications.ts`, the `push` and `notificationclick` handlers, VAPID, `PushPayload` in `shared/contracts.ts`, the Push console in Lab -> Server). Starting points in the code:
 
-- The worker has no `sync` listener yet: `src/sw/index.ts` registers install, activate, fetch and message; a new listener belongs there, its logic in a new file (`src/sw/sync.ts` or under `caching/`-like folder of its own, with the standard header: what it holds / what it means / caching type / caches touched), and `docs/WORKER.md` gets the new file.
-- `tellPages` (`src/sw/lib/messages.ts`) already posts `SwToPage` messages; `sync-complete` is in the contract.
-- The never-cached list and the rule that a request that is not a GET is never answered by the worker (`src/sw/fetch.ts`) matter: replaying a POST is done by the sync handler itself, not by the fetch listener.
-- Every build is a new worker that now WAITS; an update needs the toast (or a first install) before new worker code runs, so tell the user to press Update after each rebuild when validating.
+- The worker has five listeners (`src/sw/index.ts`); `push` and `notificationclick` are new ones, with their logic in a new file (for example `src/sw/push.ts`) that starts with the standard header (what it holds / what it means / caching type: none / caches touched: none), and `docs/WORKER.md` gets the new file. `/api/push/*` is already on the never-cached list.
+- A `sync-poke` silent push should "kick the outbox flush": reuse `flush()` in `src/sw/sync.ts` (export it) rather than copying; it replays, tells the pages and rejects when something waits, so a push handler should catch the rejection.
+- `tellPages` (`src/sw/lib/messages.ts`) can already post `push-received` and `navigate`; both are in the contract. The page side of `navigate` and `push-received` is already built.
+- Remember after each rebuild: a new worker WAITS; press Update in the toast before testing new worker code. Edge did not fire Background Sync in exercise 11; push should be validated in Chrome first.
 
 ## 8. How to update this file
 

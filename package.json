@@ -44,6 +44,7 @@
     "concurrently": "^10.0.5",
     "eslint": "^9.39.0",
     "eslint-plugin-react-hooks": "^7.1.1",
+    "fake-indexeddb": "^6.2.5",
     "globals": "^16.0.0",
     "jsdom": "^27.0.0",
     "playwright": "^1.63.0",

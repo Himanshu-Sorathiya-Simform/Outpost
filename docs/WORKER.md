@@ -11,11 +11,12 @@ A strategy uses a caching type, and every cache belongs to exactly one.
 
 ## The files
 
-- `src/sw/index.ts`: the entry. Registers the four listeners (install, activate, fetch, message) and nothing else.
+- `src/sw/index.ts`: the entry. Registers the five listeners (install, activate, fetch, message, sync) and nothing else.
 - `src/sw/config.ts`: the cache catalogue (below), the **version of each cache** (`CACHE_VERSIONS`), the allow-list (`CURRENT_CACHES`), the limits and timeouts, the never-cached list.
 - `src/sw/routes.ts`: the route table. Which URL is answered by which strategy and which bucket. Add a route here.
 - `src/sw/fetch.ts`: the `fetch` listener. GET only, same origin; a navigation goes to `navigation.ts`; everything else is looked up in the route table; no route means the browser handles the request.
 - `src/sw/lifecycle.ts`: `install` (precache, then wait) and `activate` (turn on navigation preload, delete the outdated buckets, claim the open pages).
+- `src/sw/sync.ts`: the Background Sync event. Tag `outbox-flush` replays the outbox (queued and left-over `sending` records), tells the pages with `sync-complete` (every window and the `outpost-sw` channel), **rejects** while something still waits so the browser retries, and on `lastChance` marks what waits `failed`. The replay itself is not here: it is in `src/outbox/`.
 - `src/sw/navigation.ts`: page navigations: network first with a 3 s deadline (using the browser's navigation preload), the stored `/index.html` when the network fails, answers 5xx or is too slow. Reads the shell bucket (`shell-v<N>`).
 - `src/sw/build-info.ts` and `src/sw/env.d.ts`: the two build-time constants (`__BUILD_ID__`, `__PRECACHE_URLS__`) and how the rest of the worker reads them.
 - `src/sw/caching/precache.ts`: the precache type. Downloads and checks the shell, its files and the API data, then writes them, all or nothing.
@@ -30,6 +31,16 @@ A strategy uses a caching type, and every cache belongs to exactly one.
 - `src/sw/lib/scope.ts`: `self` typed as a service worker.
 
 Build and test files live in `scripts/`: `sw-build.ts` (the bundling step, also used by the tests), `sw-shell.ts` (which files are the app shell), `sw-harness.ts` plus one `sw-*.test.ts` per strategy.
+
+## The outbox (not a cache)
+
+Dispatches that could not be sent wait in IndexedDB, in `src/outbox/`, which the page and the worker both import:
+
+- `names.ts`: the database `outpost-outbox`, store `outbox`, tag `outbox-flush`, channel `outpost-sw`, lock `outpost-outbox-flush` (copied from the contract so the worker bundle needs no zod; a test checks they match).
+- `store.ts`: `addIfAbsent` (one record per id, never resets one being sent), `list` (oldest first), `save`, `remove`, `markFailed`.
+- `replay.ts`: `replayOutbox(statuses)` under the Web Lock; `classify()` is the table of answers (201 or a 200 replay with a JSON body deletes the record; 401, 403, 400, 422 and other 4xx mark it `failed` with the server's message; 429, 5xx, 408, a body that is not JSON keep it `queued`; a rejected fetch or a 429 stops the run).
+- `announce.ts`: the `sync-complete` message, posted on the channel.
+- The page side is `src/pwa/sync.ts` (`queueDispatch`, `listQueued`, `removeQueued`, `flushNow`); the worker side is `src/sw/sync.ts`. The page's `flushNow` also replays `failed` records; the worker's `sync` does not.
 
 ## The caches: what each one stores
 

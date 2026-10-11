@@ -36,17 +36,18 @@ describe('bundleWorker', () => {
   it("does not carry the page's validation library: only types are imported from shared/", async () => {
     const code = await bundle('x')
     expect(code).not.toMatch(/zod|safeParse|ZodError/)
-    expect(code.length).toBeLessThan(40_000)
+    // zod alone would add several hundred kB; the worker with its comments, the outbox and the strategies is well under this.
+    expect(code.length).toBeLessThan(80_000)
   })
 
-  it('registers exactly the four listeners and nothing runs until the browser fires them', async () => {
+  it('registers exactly the five listeners and nothing runs until the browser fires them', async () => {
     const heard: string[] = []
     const sandbox = {
       self: { addEventListener: (type: string) => void heard.push(type), location: { origin: 'http://localhost:4000' } },
       console,
     }
     vm.runInNewContext(await bundle('x'), sandbox)
-    expect(heard).toEqual(['install', 'activate', 'fetch', 'message'])
+    expect(heard).toEqual(['install', 'activate', 'fetch', 'message', 'sync'])
   })
 
   it('leaves no public/sw.js behind: a file there would be copied over the built worker', () => {
