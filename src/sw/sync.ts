@@ -39,8 +39,11 @@ async function giveUp(result: ReplayResult): Promise<ReplayResult> {
   return { ...result, failed: [...result.failed, ...result.waiting], waiting: [] }
 }
 
-/** Replays, tells the pages, and decides whether the browser should try again. */
-async function flush(lastChance: boolean): Promise<void> {
+/**
+ * Replays, tells the pages, and decides whether the browser should try again: it REJECTS while something still waits. The sync event hands
+ * that rejection to the browser; a `sync-poke` push (src/sw/push.ts) catches it.
+ */
+export async function flush(lastChance: boolean): Promise<void> {
   let result = await replayOutbox(['queued', 'sending'])
   const retryLater = result.waiting.length > 0 && !lastChance
   if (result.waiting.length > 0 && lastChance) result = await giveUp(result)

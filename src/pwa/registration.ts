@@ -74,7 +74,7 @@ function watchController(): void {
  * It asks the browser each time instead of remembering the object from register(): a reload empties module variables,
  * and the registration outlives the page.
  */
-async function findRegistration(): Promise<ServiceWorkerRegistration | undefined> {
+export async function findRegistration(): Promise<ServiceWorkerRegistration | undefined> {
   const regs = await navigator.serviceWorker.getRegistrations()
   const inScope = regs.filter((r) => location.href.startsWith(r.scope))
   return [...inScope].sort((a, b) => b.scope.length - a.scope.length)[0] ?? regs[0]

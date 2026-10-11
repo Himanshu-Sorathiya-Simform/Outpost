@@ -69,6 +69,8 @@ export function setup(served: Record<string, Served>, urls: readonly string[] = 
   const skipWaiting = vi.fn(() => Promise.resolve())
   const claim = vi.fn(() => Promise.resolve())
   const enablePreload = vi.fn((): Promise<void> => Promise.resolve())
+  const showNotification = vi.fn((_title: string, _options?: unknown): Promise<void> => Promise.resolve())
+  const openWindow = vi.fn((_url: string): Promise<unknown> => Promise.resolve(null))
   const posted: unknown[] = []
   /** What the worker posted on a BroadcastChannel, as { channel, message }. */
   const channelPosts: Array<{ channel: string; message: unknown }> = []
@@ -83,7 +85,7 @@ export function setup(served: Record<string, Served>, urls: readonly string[] = 
   /** Bucket names whose deletion is refused, as when the browser cannot remove one. */
   let undeletable = new Set<string>()
   /** The open windows the worker can message. Each records what it was sent. */
-  let windows: Array<{ postMessage: (message: unknown) => void }> = [{ postMessage: (message) => void posted.push(message) }]
+  let windows: Array<Record<string, unknown> & { postMessage: (message: unknown) => void }> = [{ postMessage: (message) => void posted.push(message) }]
   const waited: Array<Promise<unknown>> = []
   const warnings: unknown[][] = []
 
@@ -200,8 +202,8 @@ export function setup(served: Record<string, Served>, urls: readonly string[] = 
       location: { origin: ORIGIN },
       addEventListener: (type: string, handler: Handler) => void handlers.set(type, handler),
       skipWaiting,
-      registration: { navigationPreload: { enable: enablePreload } },
-      clients: { claim, matchAll: async () => windows },
+      registration: { navigationPreload: { enable: enablePreload }, showNotification },
+      clients: { claim, matchAll: async () => windows, openWindow },
     },
     caches: fakeCaches,
     indexedDB: indexedDb,
@@ -286,6 +288,8 @@ export function setup(served: Record<string, Served>, urls: readonly string[] = 
     skipWaiting,
     claim,
     enablePreload,
+    showNotification,
+    openWindow,
     posted,
     channelPosts,
     indexedDb,
@@ -294,7 +298,7 @@ export function setup(served: Record<string, Served>, urls: readonly string[] = 
     setCacheUnreadable: (value: boolean) => void (unreadable = value),
     setWritesFail: (value: boolean) => void (writesFail = value),
     setUndeletable: (names: string[]) => void (undeletable = new Set(names)),
-    setWindows: (list: Array<{ postMessage: (message: unknown) => void }>) => void (windows = list),
+    setWindows: (list: Array<Record<string, unknown> & { postMessage: (message: unknown) => void }>) => void (windows = list),
     settle,
     warnings,
     fakeFetch,

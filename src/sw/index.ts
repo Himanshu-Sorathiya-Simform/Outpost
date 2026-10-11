@@ -1,7 +1,7 @@
-// What it holds:  the entry point of the Outpost service worker: it registers the five listeners and nothing else.
-// What it means: this is the file the bundler starts from. Everything the worker does is reached from one of these five events: the
+// What it holds:  the entry point of the Outpost service worker: it registers the seven listeners and nothing else.
+// What it means: this is the file the bundler starts from. Everything the worker does is reached from one of these seven events: the
 //                browser installing it, the browser activating it, a page making a request, a page sending it a message, the browser
-//                firing a Background Sync event.
+//                firing a Background Sync event, the browser delivering a push, a person clicking a notification.
 // Caching type:  none (see caching/ for the three types, strategies/ for how requests are answered, routes.ts for who answers what).
 // Caches touched: none directly.
 //
@@ -13,6 +13,7 @@
 //   navigation.ts        page navigations (the app shell fallback)
 //   lifecycle.ts         install (precache) and activate (preload, delete outdated buckets, claim)
 //   sync.ts              the Background Sync event: replays the outbox (the replay itself is in src/outbox/)
+//   push.ts              the push event (shows a notification, or handles a silent kind) and the notification click
 //   lib/                 headers, network checks, validators, messages
 //
 // The bundler turns this into ONE classic script, dist/sw.js, with the build id and the shell file list written into it (scripts/sw-build.ts),
@@ -22,6 +23,7 @@ import { onFetch } from './fetch'
 import { activate, install } from './lifecycle'
 import { onMessage } from './lib/messages'
 import { scope } from './lib/scope'
+import { onNotificationClick, onPush } from './push'
 import { onSync, type SyncEvent } from './sync'
 
 scope.addEventListener('install', (event) => {
@@ -38,3 +40,7 @@ scope.addEventListener('message', onMessage)
 
 // TypeScript's worker library has no SyncEvent type, so the listener takes a plain Event and sync.ts says what it really is.
 scope.addEventListener('sync', (event) => onSync(event as SyncEvent))
+
+scope.addEventListener('push', onPush)
+
+scope.addEventListener('notificationclick', onNotificationClick)

@@ -1,6 +1,6 @@
 # Handoff: Outpost PWA learning project
 
-Living context document. Read this first in a new session, then `docs/LEARNING.md` for the exercise being worked on. It is updated at the end of every exercise (see "How to update this file"). Last updated: Exercise 11 (Background Sync outbox) validated and committed (2026-10-11); Exercise 12 (push notifications) is next.
+Living context document. Read this first in a new session, then `docs/LEARNING.md` for the exercise being worked on. It is updated at the end of every exercise (see "How to update this file"). Last updated: Exercise 12 (push notifications) validated and committed (2026-10-11); Exercise 13 (the badge) is next.
 
 ## 1. What this project is
 
@@ -52,7 +52,7 @@ The user asked to skip all "breaker" code and the break-it phase. Do not write d
 - Commands: `npm run typecheck`, `npm run lint` (ignores `public/`), `npm test` (vitest, includes `src/**/*.test.ts`), `npm run pwa`, `npx vite build`, `npm run release` (bumps the version, rebuilds).
 - Claude's own checks after code changes: typecheck, lint, full tests. A build into a scratch directory (`npx vite build --outDir <scratch> --emptyOutDir`) can prove `public/` files are emitted without touching the user's `dist/`.
 - Server inspection from the shell (all under `/api/_lab/*`, never chaos'd): `GET /api/_lab/log?since=0` (request log, ring of 500; shows `dest`, `tab`, `notes`, status 0 = socket dropped), `GET /api/_lab/state`, `GET /api/_lab/chaos`, `POST /api/_lab/chaos/preset/all-clear`, `POST /api/_lab/reset`.
-- Test baseline: 615 tests at the start, 639 after exercise 1 (45 files), 675 after exercise 2 (47 files; 715 after exercise 3; `scripts/**/*.test.ts` is now in the vitest include), 879 after the worker refactor (54 files), 1016 after exercise 11 (61 files; 949 after exercise 10; 930 after exercise 9; 914 after exercise 8, 55 files; the worker tests are 225 of them before exercise 8, split per strategy in `scripts/sw-*.test.ts`).
+- Test baseline: 615 tests at the start, 639 after exercise 1 (45 files), 675 after exercise 2 (47 files; 715 after exercise 3; `scripts/**/*.test.ts` is now in the vitest include), 879 after the worker refactor (54 files), 1067 after exercise 12 (63 files; 1016 after exercise 11, 61 files; 949 after exercise 10; 930 after exercise 9; 914 after exercise 8, 55 files; the worker tests are 225 of them before exercise 8, split per strategy in `scripts/sw-*.test.ts`).
 - **Never stop processes with `pkill -f` or `killall` by pattern.** The user's `npm run pwa` server (`tsx server/index.ts`) matches the same pattern as any scratch server and was killed once this way. If a scratch server is needed, start it on another port with `& echo $!` and kill that exact PID, or prefer the vitest sandbox. After any server work, check `curl localhost:4000/api/ping`. If the user's server was lost, they restart with `npm run pwa` (it also rebuilds `dist/`).
 - Product conventions in `src/`: strict TS, no `any`, no `@ts-ignore`, no `console.log`, no emoji, `import type` for types. `public/` is outside lint and type checks, is not bundled and cannot import `shared/*.ts`.
 
@@ -71,7 +71,7 @@ The user asked to skip all "breaker" code and the break-it phase. Do not write d
 | 9 | Versioned caches, cleanup | **Done**, validated by the user in 12 browser scenarios; local, not pushed | the commit titled `ex9: ...` (find it with `git log --oneline --grep=ex9`) |
 | 10 | The update flow | **Done**, validated by the user in 11 browser scenarios; local, not pushed | the commit titled `ex10: ...` (find it with `git log --oneline --grep=ex10`) |
 | 11 | Background Sync outbox | **Done**, validated by the user in 10 browser scenarios (Chrome); local, not pushed | the commit titled `ex11: ...` (find it with `git log --oneline --grep=ex11`) |
-| 12 | Push, `notificationclick` | | |
+| 12 | Push, `notificationclick` | **Done**, validated by the user in 13 browser scenarios (Chrome); local, not pushed | the commit titled `ex12: ...` (find it with `git log --oneline --grep=ex12`) |
 | 13 | Badge and consistency | | |
 | 14 | Periodic Background Sync | | |
 | 15 | Manifest, install, share, shortcuts | | |
@@ -80,6 +80,16 @@ The user asked to skip all "breaker" code and the break-it phase. Do not write d
 Git log: `cde90b4` initial project setup → `0d61811` ex1 → `f686a52` ex2 → `ac73922` docs → ex3 → ex4 → ex5 → ex6 → `6cebb35` ex7 → the worker refactor (`git log --oneline` has the hashes; `origin/main` is at `ac73922` unless the user pushed since).
 
 ## 5. What exists now
+
+### Exercise 12: push notifications, `notificationclick`, silent pushes (commit titled `ex12: ...`)
+
+Decisions the user accepted ("Continue" on the briefing defaults):
+- **`src/sw/push.ts`** (new; `index.ts` now registers seven listeners: install, activate, fetch, message, sync, push, notificationclick). `onPush`: reads `event.data.json()` with plain checks (no zod); no or unreadable data still shows a plain "Outpost" notification (the `userVisibleOnly` promise); a payload with `silent: true` (any kind) shows nothing from the worker: `sync-poke` replays the outbox with `flush(false)` from `src/sw/sync.ts` (now exported; its rejection is caught and logged), `silent-badge` leaves the badge call for exercise 13 (a marked place in `handleSilent`), and both post `push-received` to every window (the page invalidates the inbox). A non-silent push goes to a window as `push-received` (toast, no system notification) when one is VISIBLE AND FOCUSED, otherwise `showNotification` with body, icon, tag (omitted when null), image (omitted when null), at most two actions, `requireInteraction` and `data: { url, dispatchId, kind }`.
+- **`onNotificationClick`:** closes the notification; `ack` -> `PATCH /api/dispatches/<id> { acked: true }` (no If-Match), on success posts `cache-updated` for that dispatch and `/api/inbox/summary` and opens nothing, on a refusal / no id / network error falls through and opens the app; every other action (`''`, `open`, unknown) focuses a window (prefers a visible one; a refused `focus()` still gets the message) and posts `navigate`, or `clients.openWindow(url)` when none is open. The url is checked in the worker: it must resolve to this origin, else `/`.
+- **`src/pwa/notifications.ts`:** `requestPermission` (writes `notificationPermission`), `subscribePush` (needs an active worker; VAPID key base64url -> `Uint8Array`; `userVisibleOnly: true`; POSTs `{ subscription }` through `endpoints.subscribePush`; if the server call fails the subscription this call made is undone, one that already existed is kept; writes `pushSubscribed`), `unsubscribePush` (browser first, then the server with the endpoint), `getSubscription` (keeps `pushSubscribed` in step), `showLocal` (`registration.showNotification`). `bootPwa` reads the subscription at start. `findRegistration` in `registration.ts` is now exported. The server calls go through `src/lib/queries/endpoints` so they appear in Lab -> Network (no import cycle problem showed up).
+- **Tests:** 51 new (`scripts/sw-push.test.ts` 31, `src/pwa/notifications.test.ts` 20); the harness got `showNotification`, `openWindow` and window focus/visibility state; `sw-build.test.ts` expects seven listeners. 1067 tests, typecheck and lint clean. Mutation checks (focused-only rule, silent branch, origin check, ack fall-through, close, userVisibleOnly, rollback, key as bytes) each fail tests.
+- **Verified in headless Chrome** (Playwright full Chromium, scratch server :4023; a real push is delivered with the DevTools protocol `ServiceWorker.deliverPushMessage`): a focused page gets the toast and no system notification; a page in the background gets a notification with the tag, data and actions `open`, `ack`; a second push with the same tag replaces it; a non-JSON push shows the plain "Outpost" notification. Real subscribing and real clicks cannot be tested there (Chromium has no Push API in that kind of context): the user did both in Chrome.
+- **Browser behaviour:** Chrome only (Edge did not fire Background Sync in exercise 11; push was validated in Chrome). The server needs internet to reach Chrome's push service (FCM). A silent push with the tab in the background makes Chrome show its own generic "updated in the background" notice (the lesson of the silent kinds).
 
 ### Exercise 11: Background Sync, the outbox for new dispatches (commit titled `ex11: ...`)
 
@@ -241,14 +251,14 @@ Exercise 2 design lesson: do not precache what later exercises need to fail. Pre
 
 Open observation carried forward: `registration.register()` failures (syntax or evaluation error) surface as a bare `TypeError` and are filed as kind `unknown`. The same classification gap was fixed for `update()` only. A follow-up commit could map it; the user has not asked for it yet.
 
-## 7. Notes for the next exercise (Exercise 12: Push notifications, `notificationclick`, silent pushes)
+## 7. Notes for the next exercise (Exercise 13: The badge, and keeping three counts honest)
 
-Read `docs/LEARNING.md` Exercise 12 first (`src/pwa/notifications.ts`, the `push` and `notificationclick` handlers, VAPID, `PushPayload` in `shared/contracts.ts`, the Push console in Lab -> Server). Starting points in the code:
+Read `docs/LEARNING.md` Exercise 13 first (`src/pwa/badge.ts`, `useBadgeSync`, Settings -> Badge, the Inbox Badge plate, Lab -> Consistency). Starting points in the code:
 
-- The worker has five listeners (`src/sw/index.ts`); `push` and `notificationclick` are new ones, with their logic in a new file (for example `src/sw/push.ts`) that starts with the standard header (what it holds / what it means / caching type: none / caches touched: none), and `docs/WORKER.md` gets the new file. `/api/push/*` is already on the never-cached list.
-- A `sync-poke` silent push should "kick the outbox flush": reuse `flush()` in `src/sw/sync.ts` (export it) rather than copying; it replays, tells the pages and rejects when something waits, so a push handler should catch the rejection.
-- `tellPages` (`src/sw/lib/messages.ts`) can already post `push-received` and `navigate`; both are in the contract. The page side of `navigate` and `push-received` is already built.
-- Remember after each rebuild: a new worker WAITS; press Update in the toast before testing new worker code. Edge did not fire Background Sync in exercise 11; push should be validated in Chrome first.
+- Page side: `src/pwa/badge.ts` (`set`, `clear`, feature detection with `NotSupportedError`).
+- Worker side: `handleSilent()` in `src/sw/push.ts` has the marked place for the badge call (`payload.badgeCount`: a number sets, `0` clears, `null` leaves it alone). A non-silent `dispatch` push also carries `badgeCount` (docs/CONTRACTS.md 9.4): apply it in `show()`'s caller as well. `self.navigator.setAppBadge` exists in the worker only where the API does: feature-detect, never throw (a failing badge must not fail the push).
+- Update the header comment of `push.ts` (the silent-badge line) and `docs/WORKER.md` when the badge is wired.
+- Remember after each rebuild: the new worker WAITS; press Update in the toast. The badge icon only changes for an installed app (exercise 15 has the install steps).
 
 ## 8. How to update this file
 
