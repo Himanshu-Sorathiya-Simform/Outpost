@@ -12,7 +12,7 @@ const afterLoad = (): Promise<void> =>
  *
  * Done: registration.register() and the store that mirrors it (exercise 1); the queued count from the outbox (exercise 11); the push subscription (exercise 12); the periodic sync tags (exercise 14).
  * Still to come:
- *   - capture `beforeinstallprompt` (install.ts, exercise 15)
+ *   - capture `beforeinstallprompt` (install.ts, exercise 16)
  *
  * Errors thrown here are reported to Lab → Errors, silently: main.tsx calls boot() through callSeam with `quiet`.
  */

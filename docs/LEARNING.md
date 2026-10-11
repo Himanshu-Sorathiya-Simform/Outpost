@@ -1,12 +1,12 @@
 # Learning path
 
-Sixteen exercises that turn Outpost from an ordinary website into a PWA, in the order that lets each one stand on the last. You write the PWA layer: a service worker, a manifest, and the seams in `src/pwa/*`. The website, the Lab and the server are finished and do not change.
+Seventeen exercises that turn Outpost from an ordinary website into a PWA, in the order that lets each one stand on the last. You write the PWA layer: a service worker, a manifest, and the seams in `src/pwa/*`. The website, the Lab and the server are finished and do not change.
 
 This file is the curriculum. `docs/CONTRACTS.md` is the reference: the URL map, header formats, the sync and push formats and the message protocol. Keep it open while you write the worker. This file points into it instead of repeating it.
 
 **Where the worker lives.** The exercises below say `public/sw.js`. The worker is now TypeScript under `src/sw/`, bundled by `vite build` into one `dist/sw.js` (nothing about registration, scope or updates changes). Read "edit `public/sw.js`" as "edit the matching file in `src/sw/`": `docs/WORKER.md` has the map, and each strategy has its own file in `src/sw/strategies/`.
 
-Do them in order. A few depend on earlier ones: 10 assumes the cache cleanup from 9, 13 and 14 want an installed app (15), and 16 assumes the rest are in place.
+Do them in order. A few depend on earlier ones: 10 assumes the cache cleanup from 9, 13 and 14 want an installed app (16), and 17 assumes the rest are in place.
 
 Exercises give pointers, contracts, what to expect in the Lab and what usually goes wrong. They do not give worker code. The few fragments of one to four lines show a contract, not a solution.
 
@@ -601,7 +601,7 @@ Both go through the HTTP cache by default. `fetch(event.request)` keeps the orig
 - `z.iso.datetime()` accepts only ISO strings. `Date.now()` in `createdAt` makes `listQueued` fail validation and the Outbox plate shows an error.
 - Write `status: 'sending'` and the new `attempts` to the record before the POST, so a replay that crashes leaves an honest record.
 - Two replayers racing (the `sync` event and **Retry all now**) are why `navigator.locks` exists, and why the idempotency key matters. The Environment capability matrix lists Web Locks.
-- Safari and Firefox have no Background Sync. `flushNow()` is then the only path (see exercise 16).
+- Safari and Firefox have no Background Sync. `flushNow()` is then the only path (see exercise 17).
 - `sync` retries are the browser's, with backoff. A handler that swallows errors never gets a retry. Reject so the browser reschedules, and use `event.lastChance` to decide when to stop.
 - The replay code lives in two places, the worker and `flushNow()`. They will drift. Share a module through a build, or have `flushNow` message the worker. The contract has no flush message; the app accepts unknown ones and only validates worker-to-page messages.
 
@@ -675,7 +675,7 @@ Both go through the HTTP cache by default. `fetch(event.request)` keeps the orig
 **Do.**
 1. `set(count)`: feature-detect `'setAppBadge' in navigator`; if missing throw a `NotSupportedError`; otherwise `await navigator.setAppBadge(count)`. `clear()` likewise.
 2. In the worker, apply `badgeCount` from a push payload: a number sets, `0` clears, `null` leaves it alone.
-3. Install the app to see the icon change (the steps are in exercise 15; come back to this check afterwards), then open the Inbox.
+3. Install the app to see the icon change (the steps are in exercise 16; come back to this check afterwards), then open the Inbox.
 4. Mark dispatches read and watch the badge follow, 300 ms later.
 
 **Observe.**
@@ -742,13 +742,51 @@ Both go through the HTTP cache by default. `fetch(event.request)` keeps the orig
 
 ---
 
-## Exercise 15. Share, share target, shortcuts, protocol handler, install, manifest
+## Exercise 15. Web Share: sharing out of the app
 
-**Goal.** Make the app installable, offer an install button, accept shares and `web+outpost://` links, and share out of the app.
+**Goal.** Let a person share a dispatch or a handbook chapter through the operating system's share sheet, and fall back to copying the link where there is none.
 
-**Files you edit.** `public/manifest.webmanifest` (new), `index.html`, `src/pwa/install.ts`, `src/pwa/share.ts`.
+**Files you edit.** `src/pwa/share.ts`.
 
-**Concepts.** Web app manifest members (`name`, `short_name`, `start_url`, `scope`, `id`, `display`, `theme_color`, `background_color`, `icons`, `shortcuts`, `share_target`, `protocol_handlers`, `launch_handler`), the `beforeinstallprompt` and `appinstalled` events, `navigator.share`, `navigator.canShare`.
+**Concepts.** `navigator.share`, `navigator.canShare`, user activation, secure contexts, `AbortError`, feature detection.
+
+**What the app already does for you.**
+- The Share button on a dispatch reads **Share** when `share.canShare` is true and **Copy link** otherwise. Chapters have a Share button too. A cancelled share says nothing; an unsupported one copies the link.
+- Lab → Environment → **Capability matrix** has a row "Web Share (and canShare files)" that says whether this browser has the API.
+- Lab → Queue → **Seam board** has `share.share` and shows the outcome of each call.
+
+**Do.**
+1. `canShare(data)`: call `navigator.canShare(data)` when it exists, else return `false`. Do not let it throw: a payload the browser rejects is `false`.
+2. `share(data)`: when `navigator.share` is missing, return `'unsupported'`. Otherwise `await navigator.share(data)` and return `'shared'`. Map `AbortError`, which is the person closing the share sheet, to `'cancelled'`. Let every other error through.
+
+**Observe.**
+- Dispatch page → **Share** in a browser with a share sheet: the sheet opens and the result is `shared` or `cancelled`. In a browser without one the button reads **Copy link** and the link lands on the clipboard.
+- In Chrome on Linux `navigator.share` is typically absent. Lab → Environment → Capability matrix, row "Web Share (and canShare files)", tells you before you try.
+- Lab → Queue → Seam board: `share.share` after a press.
+
+**Break it.**
+- Close the share sheet without choosing: `'cancelled'`, and the page says nothing.
+- Call `navigator.share` from the console, outside a click: Chrome throws `NotAllowedError`, which is a real error and not a cancel. Your mapping must not turn it into `'cancelled'`.
+- A payload with files in a browser whose `canShare` refuses files: `canShare` is `false`, and the page falls back to a link.
+
+**Pitfalls.**
+- `navigator.share` needs a user gesture and a secure context. A long `await` before it can use up the gesture.
+- `AbortError` means "cancelled". Anything else is a failure to show, not to swallow.
+- `canShare` can exist where `share` is missing, and the other way round. Test each on its own.
+- Not every desktop has a share sheet.
+- Receiving shares (the other direction) is a manifest feature and belongs to exercise 16.
+
+**Done when.** Where the browser has a share sheet, the Share button opens it and the `share.share` tile reads OK. Where it has none, the button reads **Copy link** and `share.share` returns `'unsupported'`.
+
+---
+
+## Exercise 16. The manifest: installability, share target, shortcuts, protocol handler
+
+**Goal.** Make the app installable, offer an install button, show it properly in the install dialog, and let the system send it shares and `web+outpost://` links. Sharing out of the app is exercise 15.
+
+**Files you edit.** `public/manifest.webmanifest` (new), `index.html`, `src/pwa/install.ts`.
+
+**Concepts.** Web app manifest members (`name`, `short_name`, `start_url`, `scope`, `id`, `display`, `theme_color`, `background_color`, `icons`, `screenshots`, `shortcuts`, `share_target`, `protocol_handlers`, `launch_handler`), the `beforeinstallprompt` and `appinstalled` events.
 
 **What the app already does for you.**
 - `public/icons/` holds `icon-192.png`, `icon-512.png`, `maskable-512.png` and `apple-touch-icon.png` (180 px). `index.html` carries the manifest and apple-touch-icon links as a comment.
@@ -756,25 +794,25 @@ Both go through the HTTP cache by default. `fetch(event.request)` keeps the orig
 - The routes the manifest targets exist: shortcuts `/file`, `/inbox`, `/signal`; share target `/share-target` (reads `?title`, `?text`, `?url`, and offers "Create dispatch from this" or "Discard"); protocol handler `/handle` (reads `?uri=web+outpost://dispatch/<id>`, `…/station/<code>`, `…/handbook/<slug>`, and refuses anything else); `/file` prefills from `?title&text&url&station`.
 - Lab → Environment → **Manifest and installability** finds the linked manifest, fetches it bypassing the HTTP cache, prints it, and runs a checklist. The tally reads "N pass, N warn, N fail, N note". Groups: Identity, Launch, Icons, Integration, Environment.
 - Settings → **Install**: "Display mode", "Standalone", "Install prompt stored", and **Install app** (disabled when already installed, "Already installed"). It lists how each browser installs by hand.
-- The Share button on a dispatch reads **Share** when `share.canShare` is true and **Copy link** otherwise. Chapters have a Share button too. A cancelled share says nothing; an unsupported one copies the link.
 
 **Do.**
-1. Write the manifest. Targets the checklist verifies: `name` and `short_name` (12 characters or fewer), `start_url` that is a route (for example `/log`), `scope` containing it, `id`, `display` of `standalone`, `fullscreen` or `minimal-ui`, `theme_color`, `background_color`; icons 192 and 512 with purpose `any`, plus a separate maskable icon; three shortcuts to `/file`, `/inbox`, `/signal`; `share_target` with action `/share-target`, method `GET` and `params` mapping `title`, `text`, `url`; `protocol_handlers` with protocol `web+outpost` and a url containing `%s` that lands on `/handle`; optionally `launch_handler.client_mode` (`auto`, `navigate-new`, `navigate-existing` or `focus-existing`).
+1. Write the manifest. Targets the checklist verifies: `name` and `short_name` (12 characters or fewer), `start_url` that is a route (for example `/log`), `scope` containing it, `id`, `display` of `standalone`, `fullscreen` or `minimal-ui`, `theme_color`, `background_color`; icons 192 and 512 with purpose `any`, plus a separate maskable icon; `screenshots` of the running app, at least one with `form_factor` `wide` and one `narrow` (each with `src`, `sizes`, `type` and a `label`; browsers show at most eight per form factor); three shortcuts to `/file`, `/inbox`, `/signal`; `share_target` with action `/share-target`, method `GET` and `params` mapping `title`, `text`, `url`; `protocol_handlers` with protocol `web+outpost` and a url containing `%s` that lands on `/handle`; optionally `launch_handler.client_mode` (`auto`, `navigate-new`, `navigate-existing` or `focus-existing`).
 2. Add `<link rel="manifest" href="/manifest.webmanifest">` and the apple-touch-icon link to `index.html`. Rebuild; both files go through `dist/`.
 3. In `install.ts`, at module level, listen for `beforeinstallprompt`, call `preventDefault()`, stash the event, and `setPwa({ installPromptAvailable: true })`. Listen for `appinstalled`. `prompt()`: if nothing is stashed, return `'unavailable'`; otherwise `await event.prompt()`, read `userChoice`, clear the stash and the flag (an event can be used once), return `'accepted'` or `'dismissed'`.
-4. In `share.ts`, `canShare(data)` calls `navigator.canShare` when it exists, else returns `false`; `share(data)` calls `navigator.share`, maps `AbortError` to `'cancelled'`, and returns `'unsupported'` when `navigator.share` is missing.
-5. Test the target without a share sheet: open `/share-target?title=Barometer%20falling&text=Pressure%20down%2011%20hPa` directly. Test the handler with `/handle?uri=web%2Boutpost%3A%2F%2Fdispatch%2Fdp-000001`; it redirects to `/log/dp-000001`. Encode the `+`: a literal `+` in a query string decodes to a space and the page answers "Not an Outpost link".
+4. Test the target without a share sheet: open `/share-target?title=Barometer%20falling&text=Pressure%20down%2011%20hPa` directly. Test the handler with `/handle?uri=web%2Boutpost%3A%2F%2Fdispatch%2Fdp-000001`; it redirects to `/log/dp-000001`. Encode the `+`: a literal `+` in a query string decodes to a space and the page answers "Not an Outpost link".
 
 **Observe.**
 - Lab → Environment → Manifest and installability: before the link, "No manifest is linked", with the members it will look for. After, a table of Pass, Warn, Fail and Note rows, for example `shortcut …`, `share_target action`, `share_target method`, `share_target params`, `protocol web+outpost` ("/handle receives it in ?uri="), `launch_handler`, and an Environment group with "secure context" and "service worker". It also shows Content-Type and Cache-Control of the manifest as served. Break `start_url` on purpose and reload the Lab.
 - A manifest that passes everything except the "service worker" note still may not install until a worker controls the page. Chrome's exact installability rules have shifted over versions; the Lab list and DevTools → Application → **Manifest** are your guides.
 - Settings → Install: "Install prompt stored: yes" appears once the browser decides. After **Install app** the outcome line says Accepted or Dismissed. Display mode becomes `standalone` in Lab → Environment → Runtime facts, and in the store.
-- Share: Dispatch page → **Share** in a browser with a share sheet; the result is `shared`, `cancelled` or a copy-link fallback. In Chrome on Linux `navigator.share` is typically absent: Lab → Environment → Capability matrix, row "Web Share (and canShare files)".
+- Screenshots: the checklist lists each one as reachable, and DevTools → Application → **Manifest** shows them under "Screenshots". With one `wide` and one `narrow` image declared, Chrome's install dialog on desktop is the richer one, with the pictures.
+- Once the app is installed, go back to exercise 13 and 14: the badge icon changes in the installed window, and `periodicSync.register` is no longer refused.
 
 **Break it.**
 - A shortcut to a route that does not exist, a `share_target` with `method: 'POST'` (the checklist warns: the page reads GET parameters, so a worker must intercept the POST and redirect to `/share-target?title=&text=&url=`), a `protocol_handlers` url with no `%s`, a `display` of `browser`, a `start_url` outside `scope`. Each produces a named finding.
 - Lab → Server → Header profile → **HTTP cache trap**: `/manifest.webmanifest` gets a year of `max-age`. The Lab bypasses the HTTP cache when it fetches the manifest, so a stale copy will not show there, but its Cache-Control row will read `max-age=31536000`; the browser may keep serving the old file.
 - A browser with no install event (Safari, Firefox): `prompt()` must return `'unavailable'`, and the Install card lists the manual route.
+- A screenshot whose real size differs from its `sizes`, or whose aspect ratio is off (each side 320 to 3840 px, the long side at most 2.3 times the short one): the browser ignores it, and the checklist only proves the file is reachable.
 
 **Pitfalls.**
 - `beforeinstallprompt` can fire before React mounts. Attach the listener when the module loads, not in an effect or inside `boot()` after an `await`.
@@ -783,14 +821,15 @@ Both go through the HTTP cache by default. `fetch(event.request)` keeps the orig
 - Combine `any` and `maskable` in one icon and you get an oversized plain icon; ship two files.
 - `start_url` is part of the app's identity unless you set `id`. Changing it later makes the browser treat the app as another one.
 - iOS Safari takes the home-screen icon from the `apple-touch-icon` link.
-- `navigator.share` needs a user gesture and a secure context, and not every desktop has a share sheet.
+- Screenshots are ordinary static files. Use real captures of the app at the size you declare, and keep the set small: they are fetched when the install dialog opens, not by the worker.
 - Share targets and protocol handlers register for installed apps and show up in OS UI. They are the least testable part of this exercise on a desktop.
+- A `share_target` is for shares coming IN. The Share button that goes out is exercise 15.
 
-**Done when.** The checklist at Lab → Environment → Manifest and installability reads 0 fail with the shortcut, share target and protocol handler rows passing; Settings → Install shows "Install prompt stored: yes" and **Install app** returns Accepted; `install.prompt` and `share.share` tiles read OK where the browser supports them.
+**Done when.** The checklist at Lab → Environment → Manifest and installability reads 0 fail with the shortcut, share target and protocol handler rows passing; Settings → Install shows "Install prompt stored: yes" and **Install app** returns Accepted; the `install.prompt` tile reads OK where the browser supports it, and the screenshot rows pass.
 
 ---
 
-## Exercise 16. Break it on purpose, and handle it
+## Exercise 17. Break it on purpose, and handle it
 
 **Goal.** Put every failure the Lab can produce in front of your worker and your seams, and decide, per failure, what the user sees.
 
@@ -915,5 +954,6 @@ The right-hand column is the 15-item tick list on the Lab home page, which numbe
 | 12 | Push, `notificationclick`, silent pushes | Server (Push console); Worker (Message log); Settings | five `notifications.*` tiles OK; click opens the dispatch | 11 |
 | 13 | Badge and consistency | Consistency; Inbox (Badge plate); Queue; Settings | `badge.set`, `badge.clear` OK; Unread row Match | 11 |
 | 14 | Periodic Background Sync | Settings; Worker; Network; Queue | `periodic-sync-complete` row | 12 |
-| 15 | Share, share target, shortcuts, protocol handler, install, manifest | Environment (Manifest and installability); Settings (Install) | 0 fail; Install returns Accepted | 13, 14 |
-| 16 | Break it and handle it | Chaos (all); Errors; Query; Environment (Storage, Capability matrix); Caches | every mode "Seen"; no bad bodies in Caches | 15 |
+| 15 | Web Share out of the app | Environment (Capability matrix); Queue (Seam board); Dispatch page | Share opens the sheet, or Copy link and `'unsupported'` | 13 |
+| 16 | Manifest: install, screenshots, share target, shortcuts, protocol handler | Environment (Manifest and installability); Settings (Install) | 0 fail; Install returns Accepted | 13, 14 |
+| 17 | Break it and handle it | Chaos (all); Errors; Query; Environment (Storage, Capability matrix); Caches | every mode "Seen"; no bad bodies in Caches | 15 |

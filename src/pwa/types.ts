@@ -9,6 +9,7 @@ export interface ShareInput {
   url?: string
   files?: File[]
 }
+/** shared: the sheet took it. cancelled: the person closed the sheet (the page says nothing). unsupported: no navigator.share here (the page copies the link). */
 export type ShareOutcome = 'shared' | 'cancelled' | 'unsupported'
 export type InstallOutcome = 'accepted' | 'dismissed' | 'unavailable'
 
@@ -64,7 +65,9 @@ export interface PwaApi {
     clear(): Promise<void>
   }
   share: {
+    /** Decides between a "Share" and a "Copy link" button. Never throws: a payload the browser rejects is false. */
     canShare(data: ShareInput): boolean
+    /** navigator.share from a click. Any error but the sheet being closed (AbortError) is a real failure and is thrown. */
     share(data: ShareInput): Promise<ShareOutcome>
   }
 }

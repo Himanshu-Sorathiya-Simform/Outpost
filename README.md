@@ -4,7 +4,7 @@ A field-station dispatch log: React 19 + TypeScript on the front, a small Node s
 
 **The rule of the game: you write the PWA layer.** There is no service worker, no manifest and no registration in this repo. Every PWA call the website makes goes through a stub in `src/pwa/` that rejects with `PwaNotImplementedError`, except four that already answer without throwing (`boot`, `notifications.permission`, `periodicSync.isSupported`, `share.canShare`). Until you fill them in, the site runs as an ordinary website and every PWA control says it isn't wired up yet.
 
-The sixteen exercises are in `docs/LEARNING.md`. The reference to keep open while you write the worker (URL map, headers, outbox and push formats, message protocol, chaos presets) is `docs/CONTRACTS.md`.
+The seventeen exercises are in `docs/LEARNING.md`. The reference to keep open while you write the worker (URL map, headers, outbox and push formats, message protocol, chaos presets) is `docs/CONTRACTS.md`.
 
 ## Quick start
 
@@ -61,7 +61,7 @@ Operators read and file dispatches from remote stations. Each page is a delibera
 | 10 | Errors | error centre plus a simulator for every error kind |
 | 11 | Query | React Query cache explorer, its settings, persistence |
 
-The Lab home has a 15-item learning path. `docs/LEARNING.md` splits the same work into 16 exercises and maps one list to the other in its last table.
+The Lab home has a 15-item learning path. `docs/LEARNING.md` splits the same work into 17 exercises and maps one list to the other in its last table.
 
 ## Where your work goes
 
