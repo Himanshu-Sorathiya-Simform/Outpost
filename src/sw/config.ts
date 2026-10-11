@@ -94,12 +94,15 @@ export const ASSETS_CACHE = nameOf('assets')
 
 /**
  * api-v<N>  (CACHE_VERSIONS.api)                                             TYPE: runtime
- *   Stores:     three families of API answers, one entry per exact URL (query string included):
+ *   Stores:     four families of API answers, one entry per exact URL (query string included):
  *                 network-first            /api/dispatches (every filter and cursor), /api/dispatches/<id>, /api/inbox/summary, /api/digest
  *                 stale-while-revalidate   /api/stations, /api/stations/<code or id>, /api/bench/stale-while-revalidate/<key>
  *                 cache-first              /api/bench/cache-first/<key>
- *   Filled by:  those three strategies (strategies/network-first.ts, stale-while-revalidate.ts, cache-first.ts).
- *   Read by:    the same three. Network-first reads it only when the network fails or is too slow.
+ *                 periodic sync            the newest digest, under the PLAIN url /api/digest (no ?since): its `generatedAt` is the next
+ *                                          run's `since` (src/sw/periodic-sync.ts)
+ *   Filled by:  those three strategies (strategies/network-first.ts, stale-while-revalidate.ts, cache-first.ts) and the periodic sync handler.
+ *   Read by:    the same three, and the periodic sync handler (it reads back the digest it kept). Network-first reads it only when the network
+ *               fails or is too slow.
  *   Size:       capped at API_LIMIT entries across all three families, oldest stored first.
  *   Changes:    bump the number when a stored shape changes (Lab -> Chaos -> Presets -> Schema drift is the same problem seen live).
  */
@@ -137,7 +140,7 @@ export const BENCH_CACHE_FIRST = '/api/bench/cache-first/'
 export const MEDIA_LIMIT = 30
 
 /**
- * api-v<N> holds one entry per URL: every filter, every "Load more" cursor, every digest `since`, the 11 station URLs and the bench
+ * api-v<N> holds one entry per URL: every filter, every "Load more" cursor, every digest `since` a page asks for, the one digest the periodic sync keeps, the 11 station URLs and the bench
  * entries. Without a cap it only grows. The cap is oldest first, so a long session of dispatch pages can still push the stations out;
  * that costs one slower visit, never a wrong answer.
  */

@@ -3,6 +3,7 @@
 //                it thinks the link is back, even if no tab is open. The worker replays the outbox (src/outbox/replay.ts) and keeps the
 //                event alive with waitUntil until that is done. If the promise REJECTS, the browser schedules another `sync` with its own
 //                backoff; `event.lastChance` says no more are coming, so what is still waiting is marked `failed` and the promise resolves.
+//                The same flush() is run by a silent `sync-poke` push (push.ts), which catches its rejection.
 //                The worker never answers the page's POST itself (fetch.ts ignores every non-GET): the page's own request fails, the page
 //                queues it, and only this handler sends it later.
 // Caching type:  none (the outbox is IndexedDB, not Cache Storage).

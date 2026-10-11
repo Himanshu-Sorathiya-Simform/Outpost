@@ -9,15 +9,18 @@ Two ideas this map keeps apart:
 
 A strategy uses a caching type, and every cache belongs to exactly one.
 
+Not everything the worker does is a strategy. `fetch` answers requests; `install` and `activate` (lifecycle), `message`, `sync` (the outbox), `push` and `notificationclick`, and `periodicsync` are other events, each with its own file. The requests the worker makes itself (the outbox replay, the acknowledge `PATCH`, the digest fetch, the precache) never pass through its own `fetch` listener.
+
 ## The files
 
-- `src/sw/index.ts`: the entry. Registers the seven listeners (install, activate, fetch, message, sync, push, notificationclick) and nothing else.
+- `src/sw/index.ts`: the entry. Registers the eight listeners (install, activate, fetch, message, sync, push, notificationclick, periodicsync) and nothing else.
 - `src/sw/config.ts`: the cache catalogue (below), the **version of each cache** (`CACHE_VERSIONS`), the allow-list (`CURRENT_CACHES`), the limits and timeouts, the never-cached list.
 - `src/sw/routes.ts`: the route table. Which URL is answered by which strategy and which bucket. Add a route here.
-- `src/sw/fetch.ts`: the `fetch` listener. GET only, same origin; a navigation goes to `navigation.ts`; everything else is looked up in the route table; no route means the browser handles the request.
+- `src/sw/fetch.ts`: the `fetch` listener. GET only, same origin; a navigation goes to `navigation.ts`; everything else is looked up in the route table; no route means the browser handles the request. Requests the worker makes itself never come through here.
 - `src/sw/lifecycle.ts`: `install` (precache, then wait) and `activate` (turn on navigation preload, delete the outdated buckets, claim the open pages).
 - `src/sw/sync.ts`: the Background Sync event. Tag `outbox-flush` replays the outbox (queued and left-over `sending` records), tells the pages with `sync-complete` (every window and the `outpost-sw` channel), **rejects** while something still waits so the browser retries, and on `lastChance` marks what waits `failed`. The replay itself is not here: it is in `src/outbox/`.
 - `src/sw/push.ts`: the `push` event and the notification click. A push is shown as a notification (title, body, icon, tag, at most two actions, `requireInteraction`, and `data` with the url, dispatch id and kind), unless a window is visible **and** focused (then the window gets `push-received` and no system notification) or the payload is **silent**. A silent `sync-poke` replays the outbox (`flush()` from `sync.ts`, its rejection caught); a silent `silent-badge` only tells the windows. Every push that carries a `badgeCount` also sets the app badge first (`src/sw/lib/badge.ts`: a number sets, 0 clears, null leaves it, and it never fails the push). A push with no or unreadable data still shows a plain "Outpost" notification (the `userVisibleOnly` promise). The click closes the notification; `ack` sends `PATCH /api/dispatches/<id> { acked: true }` and tells the windows to refetch (a 401, no id or no network opens the app instead); anything else focuses a window and posts `navigate`, or `openWindow`s the url. The url must be on this site, else `/`. No cache is touched.
+- `src/sw/periodic-sync.ts`: the `periodicsync` event, tag `digest-refresh`. Fetches `/api/digest?since=<generatedAt of the digest kept last time>` straight from the network, keeps the answer under the plain `/api/digest` in the api bucket, sets the badge to the digest's `unread`, shows ONE notification (tag `digest-urgent`, a click opens `/inbox`) when `urgentCount` is above 0 and no window is visible and focused, and posts `periodic-sync-complete`. A digest that cannot be fetched or is missing its fields **rejects** the handler and posts nothing. Chromium only, installed apps only, the browser picks the schedule.
 - `src/sw/navigation.ts`: page navigations: network first with a 3 s deadline (using the browser's navigation preload), the stored `/index.html` when the network fails, answers 5xx or is too slow. Reads the shell bucket (`shell-v<N>`).
 - `src/sw/build-info.ts` and `src/sw/env.d.ts`: the two build-time constants (`__BUILD_ID__`, `__PRECACHE_URLS__`) and how the rest of the worker reads them.
 - `src/sw/caching/precache.ts`: the precache type. Downloads and checks the shell, its files and the API data, then writes them, all or nothing.
@@ -26,10 +29,10 @@ A strategy uses a caching type, and every cache belongs to exactly one.
 - `src/sw/caching/on-demand.ts`: the on-demand type. A **documented placeholder**: the contract's `prefetch` message would drive it; nothing in the worker imports it.
 - `src/sw/strategies/cache-only.ts`, `cache-first.ts`, `network-first.ts`, `stale-while-revalidate.ts`, `network-only.ts`: one strategy per file. Each file starts with what it does step by step.
 - `src/sw/lib/headers.ts`: the `X-SW-*` header names (checked against `shared/contracts.ts`) and `stamped()` / `stampForStorage()`.
-- `src/sw/lib/network.ts`: `tryNetwork()` (one try, the whole body read, classified good / real / bad / failed) and `readJson()`.
+- `src/sw/lib/network.ts`: `tryNetwork()` (one try, the whole body read, classified good / real / bad / failed) and `readJson()`; used by network first, stale while revalidate and the periodic sync's digest fetch.
 - `src/sw/lib/validators.ts`: what a cache-first answer must be before it is stored (`isImage`, `isAsset`, `isBenchEntry`).
 - `src/sw/lib/messages.ts`: what the worker tells the pages (`tellPages`) and the three messages it understands (`get-version`, `skip-waiting`, `clear-caches`; push and sync have their own events).
-- `src/sw/lib/badge.ts`: `applyBadge()`, the worker's badge writer (the page has its own in `src/pwa/badge.ts`: two writers, one badge, last write wins). It posts a `log` message for each decision, because the OS badge cannot be read.
+- `src/sw/lib/badge.ts`: `applyBadge()`, the worker's badge writer (the page has its own in `src/pwa/badge.ts`: three writers, one badge, last write wins: the page, a push, the periodic sync). It posts a `log` message for each decision, because the OS badge cannot be read.
 - `src/sw/lib/scope.ts`: `self` typed as a service worker.
 
 Build and test files live in `scripts/`: `sw-build.ts` (the bundling step, also used by the tests), `sw-shell.ts` (which files are the app shell), `sw-harness.ts` plus one `sw-*.test.ts` per strategy.
@@ -52,10 +55,11 @@ Each name is `<family>-v<N>`; `N` comes from `CACHE_VERSIONS` in `config.ts`, sh
 - **`precache-v1`** (precache). Twelve API answers fetched at install: `/api/handbook`, its eight `/api/handbook/<slug>` chapters, and `/api/bench/cache-only/alpha`, `beta`, `gamma` (`delta` is missing on purpose). Read by cache-only, which never asks the network. Changes only with a new install.
 - **`media-v1`** (runtime). Images the page loaded: `/media/dispatch/<id>.svg` plates and `/media/station/<code>.svg` thumbnails. Filled by cache-first on the first request, only a 200 `image/*`. Capped at 30 entries, oldest first.
 - **`assets-v1`** (runtime). Hashed files the page loaded that are not in `shell-v1`: the Lab's lazy page chunks and any other script, style, wasm, font or image under `/assets/`. Filled by cache-first. No cap; files of older builds go when the number is bumped or on `clear-caches`.
-- **`api-v1`** (runtime). Three families, one entry per exact URL (query string included), capped at 80 entries across all of them, oldest first:
+- **`api-v1`** (runtime). Four families, one entry per exact URL (query string included), capped at 80 entries across all of them, oldest first:
   - network-first: `/api/dispatches` (every filter and cursor), `/api/dispatches/<id>`, `/api/inbox/summary`, `/api/digest`;
   - stale-while-revalidate: `/api/stations`, `/api/stations/<code or id>`, `/api/bench/stale-while-revalidate/<key>`;
-  - cache-first: `/api/bench/cache-first/<key>`.
+  - cache-first: `/api/bench/cache-first/<key>`;
+  - periodic sync: the newest digest under the plain `/api/digest`, written by `periodic-sync.ts`. Its `generatedAt` is the next run's `since`; if the entry is evicted or `clear-caches` ran, the next run asks for the last 24 hours.
 
 **Never stored, in any bucket:** `/api/signal`, `/api/session`, `/api/ping`, `/api/version`, `/version.json`, `/sw.js`, everything under `/api/push/`, `/api/_lab/` and `/api/bench/network-only/`, every request that is not a GET, and the unhashed `/favicon.svg` and `/icons/*`. The worker enforces the first group itself (`NEVER_CACHED` in `config.ts`: `store()` refuses them whatever asked).
 
@@ -82,4 +86,6 @@ Each name is `<family>-v<N>`; `N` comes from `CACHE_VERSIONS` in `config.ts`, sh
 - A new cache version: change one number in `CACHE_VERSIONS`, rebuild, and let the worker update. The old bucket is deleted at activate.
 - A new strategy: one file in `strategies/` with the header (what it holds, what it means, caching type, caches touched, steps), then a route.
 - Something that must never be cached: add it to `NEVER_CACHED` in `config.ts`.
+- A new event the worker listens to: one file in `src/sw/` with the standard header (what it holds, what it means, caching type, caches touched, steps), the listener in `index.ts` (TypeScript's worker library has no type for `sync` and `periodicsync`: declare a local event interface, as `sync.ts` does), a line in the file list above, and a test file that fires it with `sw.handler(<event name>)`.
+- A new message the worker sends: add its shape to `shared/sw-protocol.ts` (the page validates it), send it with `tellPages()`, and add it to the list in the header of `lib/messages.ts`.
 - The tests run the bundled worker, not the modules one by one: `scripts/sw-harness.ts` builds it and runs it in a sandbox with a fake `caches`, `fetch` and `self`.

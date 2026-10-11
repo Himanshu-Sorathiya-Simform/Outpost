@@ -29,6 +29,9 @@
 //   4. Anything else opens the notification's url: focus a window that is open and send it a `navigate` message, or openWindow(url) when
 //      none is open. openWindow only works inside this event, which is why it is here and not in the push handler.
 //   The url is checked here: it must be on this site, otherwise the app's front page is opened.
+//
+// showNotice() and windowIsFocused() are exported for src/sw/periodic-sync.ts: its "urgent news" notification is shown the same way and a click on
+// it goes through the same handler (kind 'digest', no dispatch id, so an `ack` falls through to opening the app).
 
 import type { PushPayload } from '@shared/contracts'
 import { applyBadge } from './lib/badge'
@@ -38,6 +41,23 @@ import { flush } from './sync'
 
 /** What the notification carries back to the click handler. */
 interface NotificationData {
+  url: string
+  dispatchId: string | null
+  kind: string
+}
+
+/**
+ * What a notification is made from. A PushPayload has all of it (and more), so `show(payload)` takes one directly; the periodic sync
+ * handler (src/sw/periodic-sync.ts) builds one of its own through showNotice(), so its notification and its click behave like a push's.
+ */
+interface Notice {
+  title: string
+  body: string
+  icon: string
+  image: string | null
+  tag: string | null
+  actions: Array<{ action: string; title: string }>
+  requireInteraction: boolean
   url: string
   dispatchId: string | null
   kind: string
@@ -85,7 +105,12 @@ function sitePath(raw: unknown): string {
 /** The windows of this site, controlled or not. */
 const openWindows = (): Promise<readonly WindowClient[]> => scope.clients.matchAll({ type: 'window', includeUncontrolled: true })
 
-async function show(payload: PushPayload): Promise<void> {
+/** True when a window of this site is visible AND focused: the person is looking at the app, so a system notification would only duplicate it. */
+export async function windowIsFocused(): Promise<boolean> {
+  return (await openWindows()).some((client) => client.focused && client.visibilityState === 'visible')
+}
+
+async function show(payload: Notice): Promise<void> {
   const data: NotificationData = { url: sitePath(payload.url), dispatchId: payload.dispatchId, kind: payload.kind }
   // `actions` is part of the notification API but not of TypeScript's worker library, so the options are typed as what they are.
   const options = {
@@ -101,6 +126,11 @@ async function show(payload: PushPayload): Promise<void> {
 }
 
 /** A silent payload: nothing is shown from here. */
+/** A notification that is not a push: a title, a body, a tag (so a later one replaces it) and the page to open on a click. */
+export function showNotice(notice: { title: string; body: string; tag: string; url: string; kind: string }): Promise<void> {
+  return show({ ...notice, icon: '/icons/icon-192.png', image: null, actions: [], requireInteraction: false, dispatchId: null })
+}
+
 async function handleSilent(payload: PushPayload): Promise<void> {
   if (payload.kind === 'sync-poke') {
     try {
@@ -121,12 +151,12 @@ async function handlePush(event: PushEvent): Promise<void> {
     await scope.registration.showNotification('Outpost', { body: 'A message arrived that this version of the app could not read.' })
     return
   }
-  // Two writers set this badge: this one, from the payload, and the page, from the unread count it holds. The last write wins.
+  // Three writers set this badge: this one, from the payload; the periodic sync, from the digest; and the page, from the unread count it
+  // holds. The last write wins.
   await applyBadge(payload.badgeCount)
   if (payload.silent) return handleSilent(payload)
 
-  const focused = (await openWindows()).some((client) => client.focused && client.visibilityState === 'visible')
-  if (focused) {
+  if (await windowIsFocused()) {
     await tellPages({ type: 'push-received', payload })
     return
   }

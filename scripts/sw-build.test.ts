@@ -40,14 +40,14 @@ describe('bundleWorker', () => {
     expect(code.length).toBeLessThan(80_000)
   })
 
-  it('registers exactly the seven listeners and nothing runs until the browser fires them', async () => {
+  it('registers exactly the eight listeners and nothing runs until the browser fires them', async () => {
     const heard: string[] = []
     const sandbox = {
       self: { addEventListener: (type: string) => void heard.push(type), location: { origin: 'http://localhost:4000' } },
       console,
     }
     vm.runInNewContext(await bundle('x'), sandbox)
-    expect(heard).toEqual(['install', 'activate', 'fetch', 'message', 'sync', 'push', 'notificationclick'])
+    expect(heard).toEqual(['install', 'activate', 'fetch', 'message', 'sync', 'push', 'notificationclick', 'periodicsync'])
   })
 
   it('leaves no public/sw.js behind: a file there would be copied over the built worker', () => {

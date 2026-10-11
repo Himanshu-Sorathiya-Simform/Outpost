@@ -23,8 +23,8 @@ function badgeApi(): Required<BadgeApi> {
  *  - clear(): navigator.clearAppBadge().
  *  - The website calls these from an effect whenever the inbox unread count changes (src/features/inbox/useBadgeSync.ts), quietly: a
  *    failure is in the bridge log, not on screen.
- *  - A SECOND writer exists: the worker sets the badge from a push's badgeCount with no page open (src/sw/lib/badge.ts). The last write
- *    wins and neither knows what the other wrote. That is the mismatch to hunt: React's unread count vs the badge the push handler set
+ *  - Two more writers exist: the worker sets the badge from a push's badgeCount, and from the digest's `unread` when a periodic sync runs, with
+ *    no page open (src/sw/lib/badge.ts). The last write wins and none knows what the others wrote. That is the mismatch to hunt: React's unread count vs the badge the push handler set
  *    vs GET /api/_lab/truth (Lab -> Consistency, the Inbox page's Badge plate).
  */
 export const badge: PwaApi['badge'] = {

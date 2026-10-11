@@ -1,7 +1,7 @@
 // What it holds:  the worker's way of asking the server and judging the answer: contentType(), readJson() and tryNetwork().
 // What it means: `fetch()` resolves on a 404, on a captive portal's sign-in page and on a body that dies half way, so "the fetch
-//                worked" proves nothing. These helpers decide whether an answer is the thing that was asked for. Network first and
-//                stale while revalidate both build on tryNetwork().
+//                worked" proves nothing. These helpers decide whether an answer is the thing that was asked for. Network first,
+//                stale while revalidate and the periodic sync's digest fetch (periodic-sync.ts) all build on tryNetwork().
 // Caching type:  none (this file never touches a cache).
 // Caches touched: none.
 

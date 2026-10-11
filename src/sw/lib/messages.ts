@@ -1,9 +1,12 @@
 // What it holds:  everything the worker says to the pages (tellPages) and everything the pages say to the worker (onMessage).
 // What it means: a worker and a page are separate programs that talk by posting messages. The shapes of the messages are fixed by
-//                shared/sw-protocol.ts, which the page validates and logs (Lab -> Worker -> Message log). The worker sends
-//                "cache-updated" (a stored copy changed, refetch), "log" (a line for the worker log) and "sw-version" (the reply to
-//                "get-version"). It understands "get-version", "skip-waiting" and "clear-caches" from the page; the other page-to-worker
-//                messages are for later exercises.
+//                shared/sw-protocol.ts, which the page validates and logs (Lab -> Worker -> Message log). tellPages() is how every part of
+//                the worker speaks: "cache-updated" (a stored copy changed, refetch: stale-while-revalidate, an acknowledged dispatch),
+//                "log" (a line for the worker log: cleanup, clear-caches, badge decisions, failed background refreshes), "sw-version" (the
+//                reply to "get-version"), "sync-complete" (the outbox replay, src/sw/sync.ts), "push-received" and "navigate" (push.ts) and
+//                "periodic-sync-complete" (periodic-sync.ts). onMessage() understands "get-version", "skip-waiting" and "clear-caches" from
+//                the page. The contract's "prefetch" and "ping" are not handled (nothing sends prefetch, and ping needs no answer here); a
+//                message of any other type is ignored.
 // Caching type:  none.
 // Caches touched: none directly (the version reply lists the bucket names that exist; clear-caches deletes buckets through caching/cleanup.ts).
 

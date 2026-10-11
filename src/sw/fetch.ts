@@ -11,6 +11,11 @@
 //   3. A navigation (the browser asking for a page): answer app routes with navigation.ts, leave the rest.
 //   4. Otherwise look the path up in the route table (routes.ts). No route: leave it. A route that declines this request: leave it.
 //      Otherwise the route's strategy answers.
+//
+// Requests the worker makes ITSELF never come through here: the outbox replay's POST (src/outbox/replay.ts), the acknowledge PATCH of a
+// notification click (push.ts), the digest fetch of the periodic sync (periodic-sync.ts), the precache. A worker's own fetch() does not fire its
+// own `fetch` event. That is also why the page's own POST to /api/dispatches is left alone here (step 1): when it fails the page queues it, and
+// only the sync event, or Retry all now, sends it later.
 
 import { isAppRoute, navigate } from './navigation'
 import { scope } from './lib/scope'

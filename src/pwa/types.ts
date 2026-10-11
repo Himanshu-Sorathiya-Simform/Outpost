@@ -49,7 +49,7 @@ export interface PwaApi {
     queueDispatch(input: DispatchCreate): Promise<OutboxItem>
     listQueued(): Promise<OutboxItem[]>
     removeQueued(id: string): Promise<void>
-    /** Manual "retry now" for browsers without SyncManager (and for impatience). */
+    /** Manual "Retry all now": replays every outbox record, the failed ones too, from the page. The only way to send in browsers without SyncManager (and for impatience). */
     flushNow(): Promise<void>
   }
   periodicSync: {

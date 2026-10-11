@@ -12,6 +12,7 @@
 //   cache-first               media-v<N> (/media/*), assets-v<N> (lazy chunks), api-v<N> (/api/bench/cache-first/*)
 //   network-first             api-v<N> (/api/dispatches*, /api/inbox/summary, /api/digest)
 //   stale-while-revalidate    api-v<N> (/api/stations*, /api/bench/stale-while-revalidate/*)
+//   periodic sync handler     api-v<N> (the newest digest, under the plain /api/digest; src/sw/periodic-sync.ts)
 
 import { NEVER_CACHED } from '../config'
 import { stampForStorage } from '../lib/headers'

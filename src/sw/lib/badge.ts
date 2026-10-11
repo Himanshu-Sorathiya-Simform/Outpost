@@ -1,9 +1,9 @@
 // What it holds:  applyBadge(): the worker's way of setting the app icon badge from a push's `badgeCount`.
 // What it means: the Badging API lets an installed app show a number on its icon, and it exists on the worker's own `navigator`, so a push can
 //                update it with no window open. A number above 0 sets it, 0 clears it, and `null` means "leave the badge alone" (the contract in
-//                shared/contracts.ts, PushPayload.badgeCount). The page ALSO sets the badge, from the unread count React holds
-//                (src/pwa/badge.ts, useBadgeSync): two writers, one badge, last write wins, and neither knows what the other wrote. That is the
-//                mismatch exercise 13 is about. The OS badge cannot be read, so every decision is also posted to the open windows as a `log`
+//                shared/contracts.ts, PushPayload.badgeCount). The periodic sync handler (periodic-sync.ts) calls it too, with the digest's `unread`.
+//                The page ALSO sets the badge, from the unread count React holds (src/pwa/badge.ts, useBadgeSync): three writers, one badge, last
+//                write wins, and none knows what the others wrote. That is the mismatch exercise 13 is about. The OS badge cannot be read, so every decision is also posted to the open windows as a `log`
 //                message (Lab -> Worker -> Message log), the only way to see what the worker did.
 // Caching type:  none.
 // Caches touched: none.
@@ -21,8 +21,11 @@ interface WorkerBadge {
   clearAppBadge?: () => Promise<void>
 }
 
-/** Applies a push's badgeCount and logs the decision for the pages. */
-export async function applyBadge(count: number | null): Promise<void> {
+/** Who is asking, for the log line: "Badge set to 7 by a push." */
+export type BadgeSource = 'a push' | 'a periodic sync'
+
+/** Applies a badge count (a push's badgeCount, or the digest's unread) and logs the decision for the pages. */
+export async function applyBadge(count: number | null, source: BadgeSource = 'a push'): Promise<void> {
   if (count === null) {
     await tellPages({ type: 'log', level: 'info', message: 'Badge: the push said to leave it alone (badgeCount null).' })
     return
@@ -39,7 +42,7 @@ export async function applyBadge(count: number | null): Promise<void> {
   try {
     if (count === 0) await api.clearAppBadge()
     else await api.setAppBadge(count)
-    await tellPages({ type: 'log', level: 'info', message: count === 0 ? 'Badge cleared by a push.' : `Badge set to ${count} by a push.` })
+    await tellPages({ type: 'log', level: 'info', message: count === 0 ? `Badge cleared by ${source}.` : `Badge set to ${count} by ${source}.` })
   } catch (error) {
     console.warn('Outpost worker: could not change the badge', error)
     await tellPages({ type: 'log', level: 'warn', message: `Badge: the browser refused to set ${count}.` })

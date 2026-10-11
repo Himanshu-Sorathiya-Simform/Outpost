@@ -11,6 +11,10 @@ import { bundleWorker } from './sw-build'
  * The shared harness of the worker tests. It bundles the real worker (src/sw/, through scripts/sw-build.ts, the same step the build
  * uses) and runs the finished script inside a sandbox that has a fake `self`, `caches` and `fetch`. No browser is involved, so this
  * checks the logic (what is fetched, what is stored, what is refused, who answers a request), not the browser's lifecycle.
+ * The sandbox also has what the later exercises need: an empty IndexedDB per setup (the outbox; `readOutbox` / `seedOutbox` read and write it
+ * with raw IndexedDB), Web Locks, a BroadcastChannel that records what was posted, the Badging API on the worker's navigator (`setAppBadge` /
+ * `clearAppBadge`, or none with `badgeApi: false`), `registration.showNotification`, `clients.openWindow`, and windows that can be focused or
+ * hidden (`setWindows`). A test fires an event with `sw.handler('push' | 'sync' | 'periodicsync' | 'notificationclick' | ...)`.
  * Lab -> Worker and Lab -> Caches are the check for that. What is tested is the artifact that ships, not the modules one by one.
  */
 
