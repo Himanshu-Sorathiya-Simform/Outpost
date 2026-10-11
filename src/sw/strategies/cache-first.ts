@@ -3,8 +3,8 @@
 //                notices that the server changed: a stored copy is served for as long as it exists. That is right for things that never
 //                change under the same URL (a hashed script, a plate for one dispatch id) and wrong for anything else, which is why the
 //                unhashed files (/favicon.svg, /icons/*, /version.json) are not routed here.
-// Caching type:  runtime (it fills its buckets after a miss). The /assets rule also READS shell-v1, which is precache.
-// Caches touched: media-v1 (/media/*), assets-v1 (/assets/* not in the shell; shell-v1 is read first), api-v1 (/api/bench/cache-first/<key>).
+// Caching type:  runtime (it fills its buckets after a miss). The /assets rule also READS shell-v<N>, which is precache.
+// Caches touched: media-v<N> (/media/*), assets-v<N> (/assets/* not in the shell; shell-v<N> is read first), api-v<N> (/api/bench/cache-first/<key>).
 //
 // What it does, step by step:
 //   1. Look the exact URL up in the rule's buckets, in order (query string included).

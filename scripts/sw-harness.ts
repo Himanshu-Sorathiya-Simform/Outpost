@@ -72,6 +72,8 @@ export function setup(served: Record<string, Served>, urls: readonly string[] = 
   let offline = false
   let unreadable = false
   let writesFail = false
+  /** Bucket names whose deletion is refused, as when the browser cannot remove one. */
+  let undeletable = new Set<string>()
   /** The open windows the worker can message. Each records what it was sent. */
   let windows: Array<{ postMessage: (message: unknown) => void }> = [{ postMessage: (message) => void posted.push(message) }]
   const waited: Array<Promise<unknown>> = []
@@ -179,6 +181,10 @@ export function setup(served: Record<string, Served>, urls: readonly string[] = 
     async keys() {
       return [...stores.keys()]
     },
+    async delete(name: string) {
+      if (undeletable.has(name)) throw new DOMException('The cache cannot be deleted', 'InvalidStateError')
+      return stores.delete(name)
+    },
   }
 
   const sandbox = {
@@ -258,6 +264,7 @@ export function setup(served: Record<string, Served>, urls: readonly string[] = 
     setOffline: (value: boolean) => void (offline = value),
     setCacheUnreadable: (value: boolean) => void (unreadable = value),
     setWritesFail: (value: boolean) => void (writesFail = value),
+    setUndeletable: (names: string[]) => void (undeletable = new Set(names)),
     setWindows: (list: Array<{ postMessage: (message: unknown) => void }>) => void (windows = list),
     settle,
     warnings,

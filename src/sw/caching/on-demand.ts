@@ -4,7 +4,7 @@
 //                each one. Typical uses: "save this chapter for the trip", "warm these routes before the link drops". Contrast with
 //                precache (the worker decides, at install) and runtime (a request decides, after a miss).
 // Caching type:  on-demand.
-// Caches touched: none today. When it exists it would write to one of the runtime buckets (most likely api-v1) with the same validation
+// Caches touched: none today. When it exists it would write to one of the runtime buckets (most likely api-v<N>) with the same validation
 //                 and caps as the runtime type, and the page would be told with a message when the pages are stored.
 //
 // Why it is empty: no exercise in docs/LEARNING.md needs it, and the contract says "no button sends it". The message already exists in

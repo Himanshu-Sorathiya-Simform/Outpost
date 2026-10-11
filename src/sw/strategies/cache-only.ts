@@ -3,12 +3,12 @@
 //                never asked, even when it is up. That is only safe for data you stored on purpose, at install, and it is the one
 //                strategy where "the server has something newer" is deliberately ignored: the stored handbook only changes with a new
 //                install (a new build).
-// Caching type:  precache (it READS precache-v1, which the install wrote; it never writes).
-// Caches touched: precache-v1 (read): /api/handbook, /api/handbook/<slug> and /api/bench/cache-only/{alpha,beta,gamma}.
+// Caching type:  precache (it READS precache-v<N>, which the install wrote; it never writes).
+// Caches touched: precache-v<N> (read): /api/handbook, /api/handbook/<slug> and /api/bench/cache-only/{alpha,beta,gamma}.
 //
 // What it does, step by step:
-//   1. Look the exact URL up in precache-v1 (query string included: '/api/handbook?x=1' is a different URL and a miss).
-//   2. Hit: answer the stored copy, stamped X-SW-Source: cache, X-SW-Strategy: cache-only, X-SW-Cache: precache-v1.
+//   1. Look the exact URL up in precache-v<N> (query string included: '/api/handbook?x=1' is a different URL and a miss).
+//   2. Hit: answer the stored copy, stamped X-SW-Source: cache, X-SW-Strategy: cache-only, X-SW-Cache: precache-v<N>.
 //   3. Miss, or a bucket that cannot be read: answer 504 with X-SW-Source: cache-miss and an error body in the server's own shape. The
 //      page turns that exact pair into its "Not stored for offline use" screen.
 // Routes: see routes.ts.

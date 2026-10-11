@@ -4,13 +4,13 @@
 //                file fails the whole install (the browser keeps the old worker) and a failed install leaves no bucket behind, not even
 //                an empty one. Contrast with runtime (filled after a miss) and on-demand (filled because the page asked).
 // Caching type:  precache.
-// Caches touched: shell-v1 (written: the page under '/', '/index.html' and '/offline', the ~18 hashed shell files and the ~54 website route
-//                 chunk files) and precache-v1 (written: /api/handbook, its 8 chapters, /api/bench/cache-only/{alpha,beta,gamma}).
+// Caches touched: shell-v<N> (written: the page under '/', '/index.html' and '/offline', the ~18 hashed shell files and the ~54 website route
+//                 chunk files) and precache-v<N> (written: /api/handbook, its 8 chapters, /api/bench/cache-only/{alpha,beta,gamma}).
 //
 // Who reads what this type stores:
-//   navigation (navigation.ts)        shell-v1, when the network fails
-//   cache-only (strategies/)          precache-v1, always, never the network
-//   cache-first /assets rule          shell-v1, before assets-v1
+//   navigation (navigation.ts)        shell-v<N>, when the network fails
+//   cache-only (strategies/)          precache-v<N>, always, never the network
+//   cache-first /assets rule          shell-v<N>, before assets-v<N>
 
 import {
   BENCH_CACHE_ONLY,

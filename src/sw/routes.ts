@@ -6,15 +6,15 @@
 // Caches touched: all of them, by way of the routes.
 //
 // The routes, in order (strategy / caching type / bucket):
-//   /api/handbook, /api/handbook/<slug>, /api/bench/cache-only/<key>   cache-only              precache   precache-v1 (read only)
+//   /api/handbook, /api/handbook/<slug>, /api/bench/cache-only/<key>   cache-only              precache   precache-v<N> (read only)
 //   /api/dispatches, /api/dispatches/<id>, /api/inbox/summary, /api/digest
-//                                                                      network-first           runtime    api-v1
+//                                                                      network-first           runtime    api-v<N>
 //   /api/stations, /api/stations/<code>, /api/bench/stale-while-revalidate/<key>
-//                                                                      stale-while-revalidate  runtime    api-v1
+//                                                                      stale-while-revalidate  runtime    api-v<N>
 //   /api/bench/network-only/<key>                                      network-only            none       (no cache)
-//   /media/*                                                           cache-first             runtime    media-v1
-//   /assets/*                                                          cache-first             runtime    shell-v1 (read) then assets-v1
-//   /api/bench/cache-first/<key>                                       cache-first             runtime    api-v1
+//   /media/*                                                           cache-first             runtime    media-v<N>
+//   /assets/*                                                          cache-first             runtime    shell-v<N> (read) then assets-v<N>
+//   /api/bench/cache-first/<key>                                       cache-first             runtime    api-v<N>
 // Left to the browser on purpose (no route): /api/signal, /api/session, /api/ping, /api/version, /version.json, /api/push/*, /api/_lab/*,
 // /favicon.svg, /icons/*, /sw.js, every other /api path, and every request that is not a GET. See NEVER_CACHED in config.ts.
 
@@ -40,14 +40,14 @@ export interface Route {
 /** A range request wants part of a file; a stored copy is the whole file, so those go to the network. */
 const wantsPartOfAFile = (request: Request): boolean => request.headers.has('range')
 
-/** What cache-first stores, and where. `limit` 0 means no cap: hashed files only change with a new build, and exercise 9 deletes old generations. */
+/** What cache-first stores, and where. `limit` 0 means no cap: hashed files only change with a new build, and a version bump (config.ts) deletes the old bucket. */
 const MEDIA_RULE: CacheFirstRule = { readFrom: [MEDIA_CACHE], writeTo: MEDIA_CACHE, limit: MEDIA_LIMIT, accepts: isImage }
 const ASSETS_RULE: CacheFirstRule = { readFrom: [SHELL_CACHE, ASSETS_CACHE], writeTo: ASSETS_CACHE, limit: 0, accepts: isAsset }
 const BENCH_RULE: CacheFirstRule = { readFrom: [API_CACHE], writeTo: API_CACHE, limit: 0, accepts: isBenchEntry }
 
 export const ROUTES: readonly Route[] = [
   {
-    name: 'handbook and bench cache-only: answered from precache-v1, never the network',
+    name: 'handbook and bench cache-only: answered from precache-v<N>, never the network',
     matches: isCacheOnly,
     handle: (_event, _request, url) => cacheOnly(url),
   },
@@ -70,19 +70,19 @@ export const ROUTES: readonly Route[] = [
     handle: (_event, request) => networkOnly(request),
   },
   {
-    name: 'media: cache first into media-v1',
+    name: 'media: cache first into media-v<N>',
     matches: (pathname) => pathname.startsWith('/media/'),
     declines: wantsPartOfAFile,
     handle: (event, request) => cacheFirst(event, request, MEDIA_RULE),
   },
   {
-    name: 'hashed assets: cache first, shell-v1 then assets-v1',
+    name: 'hashed assets: cache first, shell-v<N> then assets-v<N>',
     matches: (pathname) => pathname.startsWith('/assets/'),
     declines: wantsPartOfAFile,
     handle: (event, request) => cacheFirst(event, request, ASSETS_RULE),
   },
   {
-    name: 'bench cache-first: cache first into api-v1',
+    name: 'bench cache-first: cache first into api-v<N>',
     matches: (pathname) => /^\/api\/bench\/cache-first\/[^/]+$/.test(pathname),
     declines: wantsPartOfAFile,
     handle: (event, request) => cacheFirst(event, request, BENCH_RULE),

@@ -5,12 +5,12 @@
 // Caches touched: none directly.
 //
 // Where things are (the full map, with the cache catalogue, is in docs/WORKER.md):
-//   config.ts            the caches (what each stores), limits, timeouts, the never-cached list
+//   config.ts            the caches (what each stores, and each one's version), limits, timeouts, the never-cached list
 //   routes.ts            which URL is answered by which strategy
-//   caching/             the three caching types: precache.ts, runtime.ts, on-demand.ts (a placeholder)
+//   caching/             the three caching types: precache.ts, runtime.ts, on-demand.ts (a placeholder); and cleanup.ts (deleting old buckets)
 //   strategies/          cache-only, cache-first, network-first, stale-while-revalidate, network-only
 //   navigation.ts        page navigations (the app shell fallback)
-//   lifecycle.ts         install and activate
+//   lifecycle.ts         install (precache) and activate (preload, delete outdated buckets, claim)
 //   lib/                 headers, network checks, validators, messages
 //
 // The bundler turns this into ONE classic script, dist/sw.js, with the build id and the shell file list written into it (scripts/sw-build.ts),

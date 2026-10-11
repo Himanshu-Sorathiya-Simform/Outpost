@@ -5,10 +5,10 @@
 //                with no reload. Always "one fetch behind" for the first render, never slow. It suits data that changes slowly and
 //                where an instant old answer beats a slow fresh one: the station register.
 // Caching type:  runtime (it keeps a copy of every good answer and replaces it when the server has something newer).
-// Caches touched: api-v1: /api/stations, /api/stations/<code or id>, /api/bench/stale-while-revalidate/<key>.
+// Caches touched: api-v<N>: /api/stations, /api/stations/<code or id>, /api/bench/stale-while-revalidate/<key>.
 //
 // What it does, step by step:
-//   1. Look the exact URL up in api-v1. Found: answer it at once, stamped X-SW-Source: cache, X-SW-Strategy: stale-while-revalidate,
+//   1. Look the exact URL up in api-v<N>. Found: answer it at once, stamped X-SW-Source: cache, X-SW-Strategy: stale-while-revalidate,
 //      and start revalidate(url) inside event.waitUntil so the worker is kept alive until it finishes.
 //   2. Not found: nothing stale to show, so wait for the network (no timeout), store a clone and answer it stamped X-SW-Source: network.
 //      A bad answer reaches the page as it is; a failed fetch is rethrown, as without a worker.
@@ -28,7 +28,7 @@ import { tellPages } from '../lib/messages'
 import { tryNetwork } from '../lib/network'
 import { lookup, store, type CacheTarget } from '../caching/runtime'
 
-/** Where stale while revalidate reads and writes: api-v1, capped at API_LIMIT. */
+/** Where stale while revalidate reads and writes: api-v<N>, capped at API_LIMIT. */
 const SWR: CacheTarget = { readFrom: [API_CACHE], writeTo: API_CACHE, limit: API_LIMIT }
 
 /** What a response says about its own version: its ETag, else the resource revision the server counts. null when it says nothing. */

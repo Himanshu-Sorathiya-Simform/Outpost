@@ -4,8 +4,8 @@
 //                the router in the page draws the right screen. The page's code is there too: the install stored the shell files and
 //                every website route chunk, so the screen can paint with no network. The strategy is network first with a deadline, so a
 //                deploy is seen at once and a dead or hanging server does not hold the page.
-// Caching type:  precache (it only READS shell-v1, which the install wrote; it never writes).
-// Caches touched: shell-v1 (read: '/index.html').
+// Caching type:  precache (it only READS shell-v<N>, which the install wrote; it never writes).
+// Caches touched: shell-v<N> (read: '/index.html').
 //
 // What navigate() does, step by step:
 //   1. Ask for the page, preferring the browser's navigation preload (a request the browser already started, in parallel with this worker

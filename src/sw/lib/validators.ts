@@ -4,21 +4,21 @@
 //                positive checks (what it must be), not block lists (what it must not be): an empty 200 with a JSON type is not on any
 //                block list, but it is not a script either.
 // Caching type:  runtime (these decide what the runtime type may write).
-// Caches touched: none directly; strategies/cache-first.ts asks them before writing to media-v1, assets-v1 or api-v1.
+// Caches touched: none directly; strategies/cache-first.ts asks them before writing to media-v<N>, assets-v<N> or api-v<N>.
 
 import { BENCH_CACHE_FIRST } from '../config'
 import { contentType, readJson } from './network'
 
-/** A plate or thumbnail: any image type. Stored in media-v1. */
+/** A plate or thumbnail: any image type. Stored in media-v<N>. */
 export const isImage = async (response: Response): Promise<boolean> => contentType(response).startsWith('image/')
 
 /** The types a hashed file under /assets/ really has: script, style, wasm, font or image. A page of HTML or a JSON error is not one. */
 const ASSET_TYPE = /^(text\/(javascript|css)|application\/(javascript|wasm)|font\/|application\/font-|image\/)/
 
-/** A hashed file: one of ASSET_TYPE. Stored in assets-v1. */
+/** A hashed file: one of ASSET_TYPE. Stored in assets-v<N>. */
 export const isAsset = async (response: Response): Promise<boolean> => ASSET_TYPE.test(contentType(response))
 
-/** A bench cache-first entry: JSON whose `strategy` is cache-first and whose `key` is the key in the URL. Stored in api-v1. */
+/** A bench cache-first entry: JSON whose `strategy` is cache-first and whose `key` is the key in the URL. Stored in api-v<N>. */
 export async function isBenchEntry(response: Response, url: URL): Promise<boolean> {
   if (!contentType(response).includes('application/json')) return false
   try {

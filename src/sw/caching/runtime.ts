@@ -6,12 +6,12 @@
 //                install, before anyone asks) and on-demand (filled because the page asked). Runtime buckets can hold only what was
 //                actually requested, so they are capped, and every write is validated first.
 // Caching type:  runtime.
-// Caches touched: media-v1, assets-v1 and api-v1 (written); shell-v1 is also read by the /assets rule of cache-first.
+// Caches touched: media-v<N>, assets-v<N> and api-v<N> (written); shell-v<N> is also read by the /assets rule of cache-first.
 //
 // Who uses the runtime type:
-//   cache-first               media-v1 (/media/*), assets-v1 (lazy chunks), api-v1 (/api/bench/cache-first/*)
-//   network-first             api-v1 (/api/dispatches*, /api/inbox/summary, /api/digest)
-//   stale-while-revalidate    api-v1 (/api/stations*, /api/bench/stale-while-revalidate/*)
+//   cache-first               media-v<N> (/media/*), assets-v<N> (lazy chunks), api-v<N> (/api/bench/cache-first/*)
+//   network-first             api-v<N> (/api/dispatches*, /api/inbox/summary, /api/digest)
+//   stale-while-revalidate    api-v<N> (/api/stations*, /api/bench/stale-while-revalidate/*)
 
 import { NEVER_CACHED } from '../config'
 import { stampForStorage } from '../lib/headers'

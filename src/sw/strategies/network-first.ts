@@ -3,14 +3,14 @@
 //                too slow or answers with something unusable, answer the LAST STORED COPY instead. Fresh when the link is good, still
 //                useful when it is not. The price: when it falls back, the page gets an old answer and must be told (the stamps do that).
 // Caching type:  runtime (it keeps a copy of every good answer, and reads it back only on a failure).
-// Caches touched: api-v1: /api/dispatches (every query), /api/dispatches/<id>, /api/inbox/summary, /api/digest.
+// Caches touched: api-v<N>: /api/dispatches (every query), /api/dispatches/<id>, /api/inbox/summary, /api/digest.
 //
 // What it does, step by step:
 //   1. Start the network request (tryNetwork, which reads the whole body) and a NETWORK_TIMEOUT_MS timer, and wait for the first to end.
 //   2. Good in time: store a clone, answer it stamped X-SW-Source: network.
 //   3. A real answer that is not a failure (401, 403, 404...): hand it over as it is. A stored copy must never hide a signed-out
 //      session or a deleted dispatch.
-//   4. Otherwise (network error, timeout, 5xx, 429, HTML, broken body): look the exact URL up in api-v1. Found: answer it stamped
+//   4. Otherwise (network error, timeout, 5xx, 429, HTML, broken body): look the exact URL up in api-v<N>. Found: answer it stamped
 //      X-SW-Source: fallback with X-SW-Fallback-Reason (network, timeout, status-503, content-type, body). If it was the timer that
 //      fired, the slow request is not abandoned: if it later finishes well it refreshes the stored copy (storeLate).
 //   5. Nothing stored: there is nothing to fall back to, so the real outcome goes through. A slow request is waited for (aborting one
@@ -23,7 +23,7 @@ import { FALLBACK_REASON_HEADER, stamped } from '../lib/headers'
 import { tryNetwork, type Attempt } from '../lib/network'
 import { lookup, store, type CacheTarget } from '../caching/runtime'
 
-/** Where network first reads and writes: api-v1, capped at API_LIMIT. */
+/** Where network first reads and writes: api-v<N>, capped at API_LIMIT. */
 const NETWORK_FIRST: CacheTarget = { readFrom: [API_CACHE], writeTo: API_CACHE, limit: API_LIMIT }
 
 /** Stores a late answer, one that arrived after the page had already been given the stored copy. */
