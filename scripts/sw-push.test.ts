@@ -55,6 +55,12 @@ async function click(sw: ReturnType<typeof setup>, data: unknown, action = ''): 
   return notification
 }
 
+/** What a window was told, without the worker log lines (the badge decisions are checked in their own describe). */
+const heard = (client: { sent: unknown[] }): unknown[] => client.sent.filter((m) => (m as { type: string }).type !== 'log')
+/** The badge log lines a window was sent. */
+const badgeLogs = (client: { sent: unknown[] }): string[] =>
+  client.sent.filter((m) => (m as { type: string }).type === 'log').map((m) => (m as { message: string }).message).filter((m) => m.startsWith('Badge'))
+
 const notificationData = (patch: Record<string, unknown> = {}) => ({ url: '/log/dp-000064', dispatchId: 'dp-000064', kind: 'dispatch', ...patch })
 
 describe('the push event', () => {
@@ -115,7 +121,7 @@ describe('the push event', () => {
     sw.setWindows([focused])
     await push(sw, payload())
     expect(sw.showNotification).not.toHaveBeenCalled()
-    expect(focused.sent).toEqual([{ type: 'push-received', payload: expect.objectContaining({ title: 'TLV-04: Link dropped', dispatchId: 'dp-000064' }) }])
+    expect(heard(focused)).toEqual([{ type: 'push-received', payload: expect.objectContaining({ title: 'TLV-04: Link dropped', dispatchId: 'dp-000064' }) }])
   })
 
   it.each([
@@ -171,7 +177,7 @@ describe('silent pushes', () => {
     sw.setWindows([open])
     await push(sw, payload({ kind: 'silent-badge', silent: true, title: 'Badge update', url: '/inbox', actions: [], tag: null, dispatchId: null }))
     expect(sw.showNotification).not.toHaveBeenCalled()
-    expect(open.sent).toEqual([{ type: 'push-received', payload: expect.objectContaining({ kind: 'silent-badge', silent: true, badgeCount: 10 }) }])
+    expect(heard(open)).toEqual([{ type: 'push-received', payload: expect.objectContaining({ kind: 'silent-badge', silent: true, badgeCount: 10 }) }])
   })
 
   it('sync-poke replays the outbox, shows no notification, and tells the windows', async () => {
@@ -183,7 +189,7 @@ describe('silent pushes', () => {
     await push(sw, payload({ kind: 'sync-poke', silent: true, title: 'Sync poke', url: '/log', actions: [], tag: null, dispatchId: null }))
     expect(await readOutbox(sw)).toEqual([])
     expect(sw.showNotification).not.toHaveBeenCalled()
-    expect(open.sent.map((m) => (m as { type: string }).type)).toEqual(['sync-complete', 'push-received'])
+    expect(heard(open).map((m) => (m as { type: string }).type)).toEqual(['sync-complete', 'push-received'])
   })
 
   it('sync-poke does not fail the push when the outbox cannot be sent (the browser would count a failed push handler)', async () => {
@@ -328,5 +334,100 @@ describe('the acknowledge action', () => {
     const calls = patchWith(sw, ok())
     await click(sw, notificationData({ dispatchId: 'a/b c' }), 'ack')
     expect(calls[0]?.url).toBe('/api/dispatches/a%2Fb%20c')
+  })
+})
+
+describe('the app badge', () => {
+  const silentBadge = (badgeCount: number | null) => payload({ kind: 'silent-badge', silent: true, title: 'Badge update', url: '/inbox', actions: [], tag: null, dispatchId: null, badgeCount })
+
+  it('sets the badge to the count in a silent-badge push, and says so to the windows', async () => {
+    const sw = setup(HEALTHY)
+    const open = windowClient()
+    sw.setWindows([open])
+    await push(sw, silentBadge(7))
+    expect(sw.setAppBadge).toHaveBeenCalledExactlyOnceWith(7)
+    expect(sw.clearAppBadge).not.toHaveBeenCalled()
+    expect(badgeLogs(open)).toEqual(['Badge set to 7 by a push.'])
+  })
+
+  it('clears the badge at 0', async () => {
+    const sw = setup(HEALTHY)
+    const open = windowClient()
+    sw.setWindows([open])
+    await push(sw, silentBadge(0))
+    expect(sw.clearAppBadge).toHaveBeenCalledTimes(1)
+    expect(sw.setAppBadge).not.toHaveBeenCalled()
+    expect(badgeLogs(open)).toEqual(['Badge cleared by a push.'])
+  })
+
+  it('leaves the badge alone at null, and says so', async () => {
+    const sw = setup(HEALTHY)
+    const open = windowClient()
+    sw.setWindows([open])
+    await push(sw, silentBadge(null))
+    expect(sw.setAppBadge).not.toHaveBeenCalled()
+    expect(sw.clearAppBadge).not.toHaveBeenCalled()
+    expect(badgeLogs(open)).toEqual(['Badge: the push said to leave it alone (badgeCount null).'])
+  })
+
+  it('applies the count of a normal dispatch push too, with no window open, and still shows the notification', async () => {
+    const sw = setup(HEALTHY)
+    sw.setWindows([])
+    await push(sw, payload({ badgeCount: 10 }))
+    expect(sw.setAppBadge).toHaveBeenCalledExactlyOnceWith(10)
+    expect(sw.showNotification).toHaveBeenCalledTimes(1)
+  })
+
+  it('applies it when a focused window gets the toast instead of a notification', async () => {
+    const sw = setup(HEALTHY)
+    sw.setWindows([windowClient({ focused: true })])
+    await push(sw, payload({ badgeCount: 4 }))
+    expect(sw.setAppBadge).toHaveBeenCalledExactlyOnceWith(4)
+    expect(sw.showNotification).not.toHaveBeenCalled()
+  })
+
+  it.each([[-1], [2.5], [Number.NaN]])('ignores a count of %s, and says why', async (count) => {
+    const sw = setup(HEALTHY)
+    const open = windowClient()
+    sw.setWindows([open])
+    await push(sw, silentBadge(count))
+    expect(sw.setAppBadge).not.toHaveBeenCalled()
+    expect(sw.clearAppBadge).not.toHaveBeenCalled()
+    expect(badgeLogs(open)[0]).toMatch(/^Badge: ignored a badgeCount of/)
+  })
+
+  it('says so, and does not throw, in a browser whose worker has no Badging API; a normal push still shows its notification', async () => {
+    const sw = setup(HEALTHY, undefined, { badgeApi: false })
+    const open = windowClient()
+    sw.setWindows([open])
+    await expect(push(sw, payload({ badgeCount: 3 }))).resolves.toBeUndefined()
+    expect(badgeLogs(open)).toEqual(['Badge: this browser has no Badging API in the worker, so the badge was not changed.'])
+    expect(sw.showNotification).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not fail the push when the browser refuses the badge: the notification is still shown and the failure is logged', async () => {
+    const sw = setup(HEALTHY)
+    const open = windowClient()
+    sw.setWindows([open])
+    sw.setAppBadge.mockRejectedValueOnce(new DOMException('Not allowed', 'NotAllowedError'))
+    await expect(push(sw, payload({ badgeCount: 3 }))).resolves.toBeUndefined()
+    expect(sw.showNotification).toHaveBeenCalledTimes(1)
+    expect(badgeLogs(open)).toEqual(['Badge: the browser refused to set 3.'])
+    expect(sw.warnings.some((w) => String(w[0]).includes('badge'))).toBe(true)
+  })
+
+  it('does not touch the badge for a push whose data could not be read', async () => {
+    const sw = setup(HEALTHY)
+    sw.setWindows([])
+    await push(sw, null)
+    expect(sw.setAppBadge).not.toHaveBeenCalled()
+    expect(sw.clearAppBadge).not.toHaveBeenCalled()
+  })
+
+  it('a sync-poke with a badge count sets the badge as well as replaying the outbox', async () => {
+    const sw = setup(HEALTHY)
+    sw.setWindows([windowClient()])
+    await push(sw, payload({ kind: 'sync-poke', silent: true, badgeCount: 2 }))
+    expect(sw.setAppBadge).toHaveBeenCalledWith(2)
   })
 })

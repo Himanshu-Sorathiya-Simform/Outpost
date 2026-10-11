@@ -1,6 +1,6 @@
 # Handoff: Outpost PWA learning project
 
-Living context document. Read this first in a new session, then `docs/LEARNING.md` for the exercise being worked on. It is updated at the end of every exercise (see "How to update this file"). Last updated: Exercise 12 (push notifications) validated and committed (2026-10-11); Exercise 13 (the badge) is next.
+Living context document. Read this first in a new session, then `docs/LEARNING.md` for the exercise being worked on. It is updated at the end of every exercise (see "How to update this file"). Last updated: Exercise 13 (the badge) validated and committed (2026-10-11); Exercise 14 (periodic background sync) is next.
 
 ## 1. What this project is
 
@@ -52,7 +52,7 @@ The user asked to skip all "breaker" code and the break-it phase. Do not write d
 - Commands: `npm run typecheck`, `npm run lint` (ignores `public/`), `npm test` (vitest, includes `src/**/*.test.ts`), `npm run pwa`, `npx vite build`, `npm run release` (bumps the version, rebuilds).
 - Claude's own checks after code changes: typecheck, lint, full tests. A build into a scratch directory (`npx vite build --outDir <scratch> --emptyOutDir`) can prove `public/` files are emitted without touching the user's `dist/`.
 - Server inspection from the shell (all under `/api/_lab/*`, never chaos'd): `GET /api/_lab/log?since=0` (request log, ring of 500; shows `dest`, `tab`, `notes`, status 0 = socket dropped), `GET /api/_lab/state`, `GET /api/_lab/chaos`, `POST /api/_lab/chaos/preset/all-clear`, `POST /api/_lab/reset`.
-- Test baseline: 615 tests at the start, 639 after exercise 1 (45 files), 675 after exercise 2 (47 files; 715 after exercise 3; `scripts/**/*.test.ts` is now in the vitest include), 879 after the worker refactor (54 files), 1067 after exercise 12 (63 files; 1016 after exercise 11, 61 files; 949 after exercise 10; 930 after exercise 9; 914 after exercise 8, 55 files; the worker tests are 225 of them before exercise 8, split per strategy in `scripts/sw-*.test.ts`).
+- Test baseline: 615 tests at the start, 639 after exercise 1 (45 files), 675 after exercise 2 (47 files; 715 after exercise 3; `scripts/**/*.test.ts` is now in the vitest include), 879 after the worker refactor (54 files), 1091 after exercise 13 (64 files; 1067 after exercise 12, 63 files; 1016 after exercise 11, 61 files; 949 after exercise 10; 930 after exercise 9; 914 after exercise 8, 55 files; the worker tests are 225 of them before exercise 8, split per strategy in `scripts/sw-*.test.ts`).
 - **Never stop processes with `pkill -f` or `killall` by pattern.** The user's `npm run pwa` server (`tsx server/index.ts`) matches the same pattern as any scratch server and was killed once this way. If a scratch server is needed, start it on another port with `& echo $!` and kill that exact PID, or prefer the vitest sandbox. After any server work, check `curl localhost:4000/api/ping`. If the user's server was lost, they restart with `npm run pwa` (it also rebuilds `dist/`).
 - Product conventions in `src/`: strict TS, no `any`, no `@ts-ignore`, no `console.log`, no emoji, `import type` for types. `public/` is outside lint and type checks, is not bundled and cannot import `shared/*.ts`.
 
@@ -72,7 +72,7 @@ The user asked to skip all "breaker" code and the break-it phase. Do not write d
 | 10 | The update flow | **Done**, validated by the user in 11 browser scenarios; local, not pushed | the commit titled `ex10: ...` (find it with `git log --oneline --grep=ex10`) |
 | 11 | Background Sync outbox | **Done**, validated by the user in 10 browser scenarios (Chrome); local, not pushed | the commit titled `ex11: ...` (find it with `git log --oneline --grep=ex11`) |
 | 12 | Push, `notificationclick` | **Done**, validated by the user in 13 browser scenarios (Chrome); local, not pushed | the commit titled `ex12: ...` (find it with `git log --oneline --grep=ex12`) |
-| 13 | Badge and consistency | | |
+| 13 | Badge and consistency | **Done**, validated by the user in 10 browser scenarios (Chrome, no installed app: nothing on an icon can be seen yet); local, not pushed | the commit titled `ex13: ...` (find it with `git log --oneline --grep=ex13`) |
 | 14 | Periodic Background Sync | | |
 | 15 | Manifest, install, share, shortcuts | | |
 | 16 | Break it on purpose, handle it | | (the doc's own exercise about chaos; the user's "no breakers" rule is about extra break code, so ask before deciding how to treat this one) |
@@ -80,6 +80,16 @@ The user asked to skip all "breaker" code and the break-it phase. Do not write d
 Git log: `cde90b4` initial project setup → `0d61811` ex1 → `f686a52` ex2 → `ac73922` docs → ex3 → ex4 → ex5 → ex6 → `6cebb35` ex7 → the worker refactor (`git log --oneline` has the hashes; `origin/main` is at `ac73922` unless the user pushed since).
 
 ## 5. What exists now
+
+### Exercise 13: the badge, and keeping three counts honest (commit titled `ex13: ...`)
+
+Decisions the user accepted ("Continue" on the briefing defaults):
+- **Page, `src/pwa/badge.ts`:** `set(n)` takes a whole number from 0 up (0 -> `clearAppBadge`, the same call as `clear()`); a negative, a fraction, NaN or infinity throws a `RangeError` and asks the browser nothing; a browser without BOTH `setAppBadge` and `clearAppBadge` throws a `DOMException` `NotSupportedError` (the app classifies it as `unsupported`). The shell's quiet `useBadgeSync` calls now succeed.
+- **Worker, `src/sw/lib/badge.ts` (new):** `applyBadge(count)` is called by `handlePush` for EVERY push that carries a `badgeCount`, silent or not, whatever the windows are doing, before the silent / toast / notification branches: a number above 0 sets, 0 clears, `null` leaves it alone, a non-integer or negative count is ignored, a missing API or a refusing browser is logged and never fails the push. A push whose data could not be read does not touch the badge. Every decision is also posted as a `log` message to the open windows ("Badge set to 7 by a push.", "Badge cleared by a push.", "Badge: the push said to leave it alone (badgeCount null).", "Badge: ignored a badgeCount of -3; ...", "Badge: this browser has no Badging API in the worker, ...", "Badge: the browser refused to set 3."), because the OS badge cannot be read (Lab -> Worker -> Message log).
+- **Two writers, one badge, left on purpose:** the page writes the unread count React holds, the worker writes the payload's number, the last write wins. The Inbox Badge plate and Lab -> Consistency's Badge column only know what the PAGE asked for, so a silent badge push does not move them (the user was told this up front); the worker's log line is the only trace, and with no window open there is no trace at all.
+- **Tests:** 24 new (`src/pwa/badge.test.ts`, a new describe in `scripts/sw-push.test.ts`); the harness got `setAppBadge` / `clearAppBadge` on `self.navigator` and a `badgeApi: false` option; three older push tests ignore the new worker log lines. 1091 tests, typecheck and lint clean. Mutation checks (no `applyBadge` call, always `setAppBadge`, no error handling, loose number check, page always `setAppBadge`) each fail tests.
+- **Verified in headless Chrome** (scratch server :4024): the page has `setAppBadge`; Settings -> Badge -> Set badge reads "Badge set to 3."; four silent-badge pushes (7, 0, null, -3) produced exactly the four log lines above.
+- **Limit:** Outpost has no manifest until exercise 15, so no installed app exists and no icon change could be seen; the validation used the Lab and the log lines. Revisit the icon check after exercise 15 if wanted.
 
 ### Exercise 12: push notifications, `notificationclick`, silent pushes (commit titled `ex12: ...`)
 
@@ -251,14 +261,15 @@ Exercise 2 design lesson: do not precache what later exercises need to fail. Pre
 
 Open observation carried forward: `registration.register()` failures (syntax or evaluation error) surface as a bare `TypeError` and are filed as kind `unknown`. The same classification gap was fixed for `update()` only. A follow-up commit could map it; the user has not asked for it yet.
 
-## 7. Notes for the next exercise (Exercise 13: The badge, and keeping three counts honest)
+## 7. Notes for the next exercise (Exercise 14: Periodic Background Sync)
 
-Read `docs/LEARNING.md` Exercise 13 first (`src/pwa/badge.ts`, `useBadgeSync`, Settings -> Badge, the Inbox Badge plate, Lab -> Consistency). Starting points in the code:
+Read `docs/LEARNING.md` Exercise 14 first (`src/pwa/periodic-sync.ts`, the `digest-refresh` tag, Settings -> Background refresh, `GET /api/digest?since=<iso>`, `periodic-sync-complete`). Starting points in the code:
 
-- Page side: `src/pwa/badge.ts` (`set`, `clear`, feature detection with `NotSupportedError`).
-- Worker side: `handleSilent()` in `src/sw/push.ts` has the marked place for the badge call (`payload.badgeCount`: a number sets, `0` clears, `null` leaves it alone). A non-silent `dispatch` push also carries `badgeCount` (docs/CONTRACTS.md 9.4): apply it in `show()`'s caller as well. `self.navigator.setAppBadge` exists in the worker only where the API does: feature-detect, never throw (a failing badge must not fail the push).
-- Update the header comment of `push.ts` (the silent-badge line) and `docs/WORKER.md` when the badge is wired.
-- Remember after each rebuild: the new worker WAITS; press Update in the toast. The badge icon only changes for an installed app (exercise 15 has the install steps).
+- The worker has seven listeners (`src/sw/index.ts`); `periodicsync` is the eighth, with its logic in a new file (for example `src/sw/periodic-sync.ts`) that starts with the standard header (what it holds / what it means / caching type / caches touched) and `docs/WORKER.md` gets the new file. TypeScript's worker library has no `PeriodicSyncEvent`: declare a local interface as `src/sw/sync.ts` does for `SyncEvent`, and cast in the listener.
+- `/api/digest` is already routed to network-first into `api-v<N>` (`src/sw/routes.ts`), so a fetch of it from the periodic handler does NOT go through the worker's own fetch listener (a worker's own `fetch()` skips it). Decide whether the handler stores the answer itself (using `store()` from `src/sw/caching/runtime.ts` with the api target, so validation and the cap apply) or only tells the pages. The `digest` answer carries `unread`, which is also what the badge should show: `applyBadge` (`src/sw/lib/badge.ts`) is the worker's writer.
+- `tellPages` can post `periodic-sync-complete { tag, newCount }`; the page invalidates the digest and inbox queries on it.
+- Chromium only, installed PWAs only (the manifest comes in exercise 15), and the browser decides the real interval; the DevTools box Application -> Service workers -> Periodic Sync fires the tag by hand and may work without installing in some builds. Say what could not be verified.
+- Remember after each rebuild: the new worker WAITS; press Update in the toast.
 
 ## 8. How to update this file
 

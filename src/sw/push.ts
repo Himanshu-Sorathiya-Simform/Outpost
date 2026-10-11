@@ -11,12 +11,13 @@
 // onPush, step by step:
 //   1. Read the payload with event.data.json(). A push with no data, or data that is not a usable payload, still has to show SOMETHING
 //      (the userVisibleOnly promise), so it shows a plain "Outpost" notification instead of failing silently.
-//   2. A SILENT payload shows nothing from here. sync-poke replays the outbox (the same flush as the sync event, src/sw/sync.ts);
-//      silent-badge has its place marked for the badge call of exercise 13. Both tell the open windows with `push-received`, which makes the
-//      page refetch the inbox.
-//   3. Otherwise, if a window is VISIBLE AND FOCUSED, tell it (`push-received`: the page shows a toast with an Open button) and show no system
+//   2. Apply the payload's badgeCount (src/sw/lib/badge.ts): a number sets the app icon badge, 0 clears it, null leaves it alone. This is for
+//      every push that carries one, silent or not, and whatever the windows are doing; it never fails the push.
+//   3. A SILENT payload shows nothing from here. sync-poke replays the outbox (the same flush as the sync event, src/sw/sync.ts);
+//      silent-badge needs nothing more than step 2. Both tell the open windows with `push-received`, which makes the page refetch the inbox.
+//   4. Otherwise, if a window is VISIBLE AND FOCUSED, tell it (`push-received`: the page shows a toast with an Open button) and show no system
 //      notification, so the person does not get both.
-//   4. Otherwise show the notification: title, body, icon, tag (a new push with the same tag replaces the old one), actions,
+//   5. Otherwise show the notification: title, body, icon, tag (a new push with the same tag replaces the old one), actions,
 //      requireInteraction, and in `data` the url, the dispatch id and the kind, so the click handler can read them back.
 //   Everything is inside event.waitUntil, because the worker may be stopped before a promise it did not hand over has finished.
 //
@@ -30,6 +31,7 @@
 //   The url is checked here: it must be on this site, otherwise the app's front page is opened.
 
 import type { PushPayload } from '@shared/contracts'
+import { applyBadge } from './lib/badge'
 import { scope } from './lib/scope'
 import { tellPages } from './lib/messages'
 import { flush } from './sync'
@@ -109,7 +111,6 @@ async function handleSilent(payload: PushPayload): Promise<void> {
       console.warn('Outpost worker: the sync poke could not send everything', error)
     }
   }
-  // silent-badge: the badge call goes here in exercise 13 (payload.badgeCount; null means leave the badge alone).
   await tellPages({ type: 'push-received', payload })
 }
 
@@ -120,6 +121,8 @@ async function handlePush(event: PushEvent): Promise<void> {
     await scope.registration.showNotification('Outpost', { body: 'A message arrived that this version of the app could not read.' })
     return
   }
+  // Two writers set this badge: this one, from the payload, and the page, from the unread count it holds. The last write wins.
+  await applyBadge(payload.badgeCount)
   if (payload.silent) return handleSilent(payload)
 
   const focused = (await openWindows()).some((client) => client.focused && client.visibilityState === 'visible')

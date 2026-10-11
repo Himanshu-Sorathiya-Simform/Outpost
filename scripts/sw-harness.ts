@@ -60,7 +60,7 @@ export interface Served {
 
 export type Handler = (event: Record<string, unknown>) => void
 
-export function setup(served: Record<string, Served>, urls: readonly string[] = URLS, options: { internals?: boolean; connectionLimit?: number } = {}) {
+export function setup(served: Record<string, Served>, urls: readonly string[] = URLS, options: { internals?: boolean; connectionLimit?: number; badgeApi?: boolean } = {}) {
   const handlers = new Map<string, Handler>()
   const requested: Array<{ url: string; cache: string; accept: string | null }> = []
   /** The headers of every request the worker sent to the server, in order. */
@@ -69,6 +69,9 @@ export function setup(served: Record<string, Served>, urls: readonly string[] = 
   const skipWaiting = vi.fn(() => Promise.resolve())
   const claim = vi.fn(() => Promise.resolve())
   const enablePreload = vi.fn((): Promise<void> => Promise.resolve())
+  /** The Badging API of the worker's navigator: what the worker asked the OS to show. A test that wants a browser without it passes badgeApi: false. */
+  const setAppBadge = vi.fn((_count?: number): Promise<void> => Promise.resolve())
+  const clearAppBadge = vi.fn((): Promise<void> => Promise.resolve())
   const showNotification = vi.fn((_title: string, _options?: unknown): Promise<void> => Promise.resolve())
   const openWindow = vi.fn((_url: string): Promise<unknown> => Promise.resolve(null))
   const posted: unknown[] = []
@@ -197,9 +200,23 @@ export function setup(served: Record<string, Served>, urls: readonly string[] = 
     },
   }
 
+  // A worker's `navigator` is the same object as `self.navigator`: Web Locks and, where the browser has it, the Badging API.
+  const workerNavigator = {
+    locks: {
+      request: async (name: string, callback: () => Promise<unknown>) => {
+        lockNames.push(name)
+        const run = (lockTails.get(name) ?? Promise.resolve()).then(() => callback())
+        lockTails.set(name, run.catch(() => undefined))
+        return run
+      },
+    },
+    ...(options.badgeApi === false ? {} : { setAppBadge, clearAppBadge }),
+  }
+
   const sandbox = {
     self: {
       location: { origin: ORIGIN },
+      navigator: workerNavigator,
       addEventListener: (type: string, handler: Handler) => void handlers.set(type, handler),
       skipWaiting,
       registration: { navigationPreload: { enable: enablePreload }, showNotification },
@@ -207,16 +224,7 @@ export function setup(served: Record<string, Served>, urls: readonly string[] = 
     },
     caches: fakeCaches,
     indexedDB: indexedDb,
-    navigator: {
-      locks: {
-        request: async (name: string, callback: () => Promise<unknown>) => {
-          lockNames.push(name)
-          const run = (lockTails.get(name) ?? Promise.resolve()).then(() => callback())
-          lockTails.set(name, run.catch(() => undefined))
-          return run
-        },
-      },
-    },
+    navigator: workerNavigator,
     BroadcastChannel: class {
       constructor(private readonly name: string) {}
       postMessage(message: unknown): void {
@@ -290,6 +298,8 @@ export function setup(served: Record<string, Served>, urls: readonly string[] = 
     enablePreload,
     showNotification,
     openWindow,
+    setAppBadge,
+    clearAppBadge,
     posted,
     channelPosts,
     indexedDb,
