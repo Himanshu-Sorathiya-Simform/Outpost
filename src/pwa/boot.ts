@@ -11,10 +11,11 @@ const afterLoad = (): Promise<void> =>
  * Called once from src/main.tsx right after the first render. This is where your PWA work starts.
  *
  * Done: registration.register() and the store that mirrors it (exercise 1); the queued count from the outbox (exercise 11); the push subscription (exercise 12); the periodic sync tags (exercise 14).
- * Still to come:
- *   - capture `beforeinstallprompt` (install.ts, exercise 16)
+ * Not here, on purpose: `beforeinstallprompt` is caught when src/pwa/install.ts LOADS (exercise 16), because it can fire before this runs.
  *
- * Errors thrown here are reported to Lab → Errors, silently: main.tsx calls boot() through callSeam with `quiet`.
+ * Every step is safe in a browser that lacks the API behind it (exercise 17): no service worker, no push, no Background Sync, no storage
+ * means a count of 0, no subscription and no tags, never an exception. Errors that do get thrown here are reported to Lab → Errors,
+ * silently: main.tsx calls boot() through callSeam with `quiet`.
  */
 export async function bootPwa(): Promise<void> {
   startBrowserSync()

@@ -1,6 +1,6 @@
 # Handoff: Outpost PWA learning project
 
-Living context document. Read this first in a new session, then `docs/LEARNING.md` for the exercise being worked on. It is updated at the end of every exercise (see "How to update this file"). Last updated: Exercise 16 (the manifest, install, screenshots, share target, shortcuts, protocol handler) committed after the user's browser check (2026-10-12); Exercise 17 (break it on purpose, handle it) is next.
+Living context document. Read this first in a new session, then `docs/LEARNING.md` for the exercise being worked on. It is updated at the end of every exercise (see "How to update this file"). Last updated: Exercise 17 (break it on purpose, handle it) committed after the user's browser check (2026-10-12). All 17 exercises are done; see section 7 for what is left.
 
 ## 1. What this project is
 
@@ -52,7 +52,7 @@ The user asked to skip all "breaker" code and the break-it phase. Do not write d
 - Commands: `npm run typecheck`, `npm run lint` (ignores `public/`), `npm test` (vitest, includes `src/**/*.test.ts`), `npm run pwa`, `npx vite build`, `npm run release` (bumps the version, rebuilds).
 - Claude's own checks after code changes: typecheck, lint, full tests. A build into a scratch directory (`npx vite build --outDir <scratch> --emptyOutDir`) can prove `public/` files are emitted without touching the user's `dist/`.
 - Server inspection from the shell (all under `/api/_lab/*`, never chaos'd): `GET /api/_lab/log?since=0` (request log, ring of 500; shows `dest`, `tab`, `notes`, status 0 = socket dropped), `GET /api/_lab/state`, `GET /api/_lab/chaos`, `POST /api/_lab/chaos/preset/all-clear`, `POST /api/_lab/reset`.
-- Test baseline: 615 tests at the start, 639 after exercise 1 (45 files), 675 after exercise 2 (47 files; 715 after exercise 3; `scripts/**/*.test.ts` is now in the vitest include), 879 after the worker refactor (54 files), 1175 after the exercise 16 follow-up (71 files; 1169 after exercise 16, 70 files; 1145 after exercise 15, 67 files; 1133 after exercise 14, 66 files; 1091 after exercise 13, 64 files; 1067 after exercise 12, 63 files; 1016 after exercise 11, 61 files; 949 after exercise 10; 930 after exercise 9; 914 after exercise 8, 55 files; the worker tests are 225 of them before exercise 8, split per strategy in `scripts/sw-*.test.ts`).
+- Test baseline: 615 tests at the start, 639 after exercise 1 (45 files), 675 after exercise 2 (47 files; 715 after exercise 3; `scripts/**/*.test.ts` is now in the vitest include), 879 after the worker refactor (54 files), 1231 after exercise 17 (74 files; 1175 after the exercise 16 follow-up, 71 files; 1169 after exercise 16, 70 files; 1145 after exercise 15, 67 files; 1133 after exercise 14, 66 files; 1091 after exercise 13, 64 files; 1067 after exercise 12, 63 files; 1016 after exercise 11, 61 files; 949 after exercise 10; 930 after exercise 9; 914 after exercise 8, 55 files; the worker tests are 225 of them before exercise 8, split per strategy in `scripts/sw-*.test.ts`).
 - **Never stop processes with `pkill -f` or `killall` by pattern.** The user's `npm run pwa` server (`tsx server/index.ts`) matches the same pattern as any scratch server and was killed once this way. If a scratch server is needed, start it on another port with `& echo $!` and kill that exact PID, or prefer the vitest sandbox. After any server work, check `curl localhost:4000/api/ping`. If the user's server was lost, they restart with `npm run pwa` (it also rebuilds `dist/`).
 - Product conventions in `src/`: strict TS, no `any`, no `@ts-ignore`, no `console.log`, no emoji, `import type` for types. `public/` is outside lint and type checks, is not bundled and cannot import `shared/*.ts`.
 
@@ -76,11 +76,24 @@ The user asked to skip all "breaker" code and the break-it phase. Do not write d
 | 14 | Periodic Background Sync | **Done**, validated by the user in 10 browser scenarios (Chrome, a tab, no installed app: registering is refused there, the handler is fired from DevTools); local, not pushed | the commit titled `ex14: ...` (find it with `git log --oneline --grep=ex14`) |
 | 15 | Web Share (share out of the app) | **Done**; checked after exercise 16 (see the Linux limits in section 6); local, not pushed | the commit titled `ex15: ...` (find it with `git log --oneline --grep=ex15`) |
 | 16 | Manifest, install, screenshots, share target, shortcuts, protocol handler | **Done** and validated by the user in Chrome on Ubuntu; local, not pushed | the commit titled `ex16: ...` (find it with `git log --oneline --grep=ex16`) |
-| 17 | Break it on purpose, handle it | | (the doc's own exercise about chaos; the user's "no breakers" rule is about extra break code, so ask before deciding how to treat this one) |
+| 17 | Break it on purpose, handle it | **Done** and validated by the user in Chrome on Ubuntu; local, not pushed | the commit titled `ex17: ...` (find it with `git log --oneline --grep=ex17`) |
 
 Git log: `cde90b4` initial project setup → `0d61811` ex1 → `f686a52` ex2 → `ac73922` docs → ex3 → ex4 → ex5 → ex6 → `6cebb35` ex7 → the worker refactor (`git log --oneline` has the hashes; `origin/main` is at `ac73922` unless the user pushed since).
 
 ## 5. What exists now
+
+### Exercise 17: break it on purpose, and handle it (commit titled `ex17: ...`)
+
+Done with the Lab's own instruments (Chaos, Caches, Errors, Query, Environment); no break-it code was written. The code changes are the gaps the Lab exposed.
+- **`src/sw/lib/shape.ts` (new):** `shapeCheckFor(pathname)`: plain checks (no schema library in the worker) that `/api/dispatches` and `/api/digest` have an `items` array of dispatches and `/api/dispatches/<id>` is a dispatch: text `id`, `stationId`, `title`, `filedAt` and a `severity` of routine, notice, urgent or critical. The drifted shape (`station_id`, `filed_at`, numeric `level`) fails. A deliberate change to those shapes means a change to this file and a bump of `CACHE_VERSIONS.api`.
+- **`src/sw/lib/network.ts`:** `tryNetwork(request, url, hasShape?)`; a body the check refuses is `bad` with reason `shape`.
+- **`src/sw/strategies/network-first.ts`:** passes the check for the three URLs; `usableCopy()` also checks a STORED copy before serving it and deletes one that fails (repairs a copy poisoned by an earlier build, so no cache bump was needed). With a good copy stored a drifted 200 is answered from it with `X-SW-Fallback-Reason: shape`; with nothing stored it passes through unstored and the page files `schema-mismatch`.
+- **`src/sw/caching/runtime.ts` `store()`:** on `QuotaExceededError` it deletes the bucket's `QUOTA_TRIM_ENTRIES` (10, `config.ts`) oldest entries, never the one being replaced (a first version deleted it; a test caught that), and tries once more using a clone taken beforehand; a second failure is only logged. The page never sees it. Install precache stays all-or-nothing.
+- **`src/pwa/registration.ts` `findRegistration()`:** returns `undefined` without service worker support. Before, a missing `navigator.serviceWorker` made `getSubscription`, `unsubscribePush` and `showLocal` throw a TypeError. Found by the table test below.
+- **`src/pwa/install.ts`:** `appinstalled` calls `navigator.storage.persist()` once (`keepStorage()`), failures ignored, nothing tracked.
+- **Tests:** `scripts/sw-shape.test.ts` (29), `scripts/sw-quota.test.ts` (4), 7 drift cases in `scripts/sw-network-first.test.ts` (existing fixtures became real dispatches), `src/pwa/unsupported.test.ts` (10: every seam with every API missing, one per row of the doc's table), persist cases in `install.test.ts`, the outbox full-disk case in `sync.test.ts` (`queueDispatch` rejects with the `QuotaExceededError` itself, so the page files `quota` and keeps the draft; this already worked, now proven). The harness fake cache can now fail the next N writes (`setWritesFail(n)`) and deletes by URL string. 1231 tests in 74 files, typecheck and lint clean; each new behaviour was mutation-checked.
+- **Verified in headless Chromium** (real worker and server): Schema drift on -> list answered from the stored copy (`fallback` / `shape`), no `station_id` in any stored entry, `/log` still shows rows offline; an unstored URL passes through drifted and is not stored; Rate limited stores no 429. Probe results by target: **Signal board** is never stored, so Captive portal, Corrupt JSON and Empty 200 show `PARSE` and Rate limited shows `RATE-LIMITED`, as predicted; **Dispatch list** with a stored copy shows `OK 200` via "SW fallback" (the worker hid the failure, which the ledger calls "not as predicted"); the **Truncated feed** preset only breaks the dispatch feed.
+- **Checked by the user in Chrome 152 on Ubuntu** with the 19-step scenario list (drift, bad bodies, rate limit, storage, missing APIs, query persistence). Comments were brought up to date across the worker, `src/pwa`, the harness and the Lab learning path.
 
 ### Exercise 16: the manifest, install, screenshots, share target, shortcuts, protocol handler (commit titled `ex16: ...`)
 
@@ -301,17 +314,28 @@ Platform limits found while checking exercises 13 to 16 on Chrome 152, Ubuntu (G
 - **App shortcuts** appear in the GNOME launcher menu (the `Actions=` lines of the `.desktop` file), not in `chrome://apps`.
 - Edge on the same machine did not fire Background Sync on offline -> online (Chrome did); "Retry all now" works in both.
 
+Found while doing exercise 17:
+
+- The Chaos Probe measures what the PAGE sees. A target the worker stores (Dispatch list, once a healthy copy exists) shows `OK 200`, source "SW fallback", flagged "not as predicted": the worker masked the fault, which is the goal. To see the raw failure kinds use the never-stored **Signal board** target. "Expected against observed" (N of 12 seen) only counts what the page observed, so it does not reach 12 while the worker is doing its job.
+- `X-SW-Fallback-Reason` values: `network`, `timeout`, `status-<code>`, `content-type`, `body`, `shape`. Visible in DevTools only.
+
 Exercise 2 design lesson: do not precache what later exercises need to fail. Precache is a decision about which failures you keep.
 
 Open observation carried forward: `registration.register()` failures (syntax or evaluation error) surface as a bare `TypeError` and are filed as kind `unknown`. The same classification gap was fixed for `update()` only. A follow-up commit could map it; the user has not asked for it yet.
 
-## 7. Notes for the next exercise (Exercise 17: break it on purpose, handle it)
+## 7. What is left (all 17 exercises are done)
 
-Read `docs/LEARNING.md` Exercise 17 first. The exercises are numbered 1 to 17 since the user split the old 15 in two (2026-10-11): 15 Web Share, 16 manifest, 17 break it on purpose. The Lab home page keeps its own separate 15-item list.
+`docs/LEARNING.md` exercises 1 to 17 are complete and committed locally. Nothing is pushed: `origin/main` (https://github.com/Himanshu-Sorathiya-Simform/Outpost.git) is 10 commits behind (ex9 to ex17 plus the update-banner fix). Never push or force-push without the user asking.
 
-The user's rule is "no break-it/breaker code". Exercise 17 in the doc is about chaos (the Lab's own Chaos page, the Errors page, offline and server-down scenarios), so **ask before deciding how to treat it** (a briefing that proposes using only the Lab's existing instruments and no new code, and lets the user choose). Nothing for it has been started.
+Not exercises, only loose ends, all optional and none started:
+- **Known platform limits (section 6):** no badge icon on Linux, no `navigator.share` on Linux, Android badges are a dot from an unread notification, Edge did not fire Background Sync, Firefox and Safari never tested.
+- **Open observation:** a failing `registration.register()` (a worker script that does not parse) is still filed as kind `unknown`; only `update()` maps it.
+- **`on-demand` caching** is a documented placeholder (the contract's `prefetch` message is not implemented, by the user's choice).
+- **Shell and assets buckets** collect old builds between `CACHE_VERSIONS` bumps.
+- **Deployment:** everything was run on localhost over `npm run pwa`; a real HTTPS deploy was never done.
+- The Lab home page keeps its own 15-item tick list (the user's own progress), separate from the 17 exercises.
 
-Remember after each rebuild: the new worker WAITS; press Update in the toast.
+If the user asks for more work, ask what they want; there is no queued exercise.
 
 ## 8. How to update this file
 

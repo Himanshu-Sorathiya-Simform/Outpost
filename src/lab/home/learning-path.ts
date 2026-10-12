@@ -114,7 +114,7 @@ export const EXERCISES: readonly Exercise[] = [
     no: 15,
     title: 'Break it on purpose: chaos, schema drift, forced upgrade',
     note: 'Turn on Hard down, Schema drift and a minimum client above this version, one at a time, with your worker running. Decide what each should do and make the app do that.',
-    edit: ['src/sw/', 'src/pwa/registration.ts'],
+    edit: ['src/sw/', 'src/pwa/registration.ts', 'src/sw/lib/shape.ts'],
     watch: { label: 'Lab / Chaos', to: '/lab/chaos' },
   },
 ]

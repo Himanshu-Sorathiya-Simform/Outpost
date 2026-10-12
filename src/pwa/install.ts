@@ -12,6 +12,20 @@ let stashed: BeforeInstallPromptEvent | null = null
 /** True while the install dialog is open: a second press must not call prompt() on the same event again. */
 let prompting = false
 
+/**
+ * Asks the browser not to evict this site's storage (the caches, the outbox, the drafts) when the disk fills up. Without it the storage is "best
+ * effort" and can vanish whole. Called once an install has happened, the moment a browser is most willing to say yes (Chrome usually grants it to an
+ * installed app by itself). The answer changes nothing the page does, so it is not tracked, and a browser without it, or one that refuses, is ignored.
+ * The Lab shows the result: Lab -> Environment -> Storage, "Persisted".
+ */
+async function keepStorage(): Promise<void> {
+  try {
+    if (typeof navigator !== 'undefined' && typeof navigator.storage?.persist === 'function') await navigator.storage.persist()
+  } catch {
+    // nothing to do: the storage simply stays best effort
+  }
+}
+
 /*
  * These listeners are attached when this module LOADS, not in an effect and not in boot() after an await: `beforeinstallprompt` can fire before
  * React has mounted, and an event nobody was listening for is gone. src/pwa/index.ts imports this file, and the app imports src/pwa at start.
@@ -27,6 +41,7 @@ if (typeof window !== 'undefined') {
     // Installed by any route (our button, the address bar, the browser menu): the stashed prompt is no use any more.
     stashed = null
     setPwa({ installPromptAvailable: false })
+    void keepStorage()
   })
 }
 
@@ -38,6 +53,7 @@ if (typeof window !== 'undefined') {
  *    event.prompt(), then the person's answer: 'accepted' or 'dismissed'. The event is dropped once the dialog has been shown, so Install app
  *    is disabled until the browser offers a new one. Called outside a click the browser refuses; that error is thrown and the prompt stays stashed.
  *  - After an install the page keeps running in its tab; `display-mode: standalone` only becomes true in the installed window.
+ *  - Exercise 17: on `appinstalled` the page also asks for persistent storage once (keepStorage above), so a full disk is less likely to evict the caches and the outbox.
  *
  * Used by: Settings -> Install card, and the shell's install nudge.
  */

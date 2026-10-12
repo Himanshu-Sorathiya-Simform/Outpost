@@ -14,7 +14,8 @@ import { bundleWorker } from './sw-build'
  * The sandbox also has what the later exercises need: an empty IndexedDB per setup (the outbox; `readOutbox` / `seedOutbox` read and write it
  * with raw IndexedDB), Web Locks, a BroadcastChannel that records what was posted, the Badging API on the worker's navigator (`setAppBadge` /
  * `clearAppBadge`, or none with `badgeApi: false`), `registration.showNotification`, `clients.openWindow`, and windows that can be focused or
- * hidden (`setWindows`). A test fires an event with `sw.handler('push' | 'sync' | 'periodicsync' | 'notificationclick' | ...)`.
+ * hidden (`setWindows`), and a cache whose writes can fail as a full disk (`setWritesFail(true)` for every write, `setWritesFail(n)` for the next n, then it
+ * works again as a bucket that made room). A test fires an event with `sw.handler('push' | 'sync' | 'periodicsync' | 'notificationclick' | ...)`.
  * Lab -> Worker and Lab -> Caches are the check for that. What is tested is the artifact that ships, not the modules one by one.
  */
 
@@ -88,7 +89,8 @@ export function setup(served: Record<string, Served>, urls: readonly string[] = 
   const lockNames: string[] = []
   let offline = false
   let unreadable = false
-  let writesFail = false
+  /** true: every write is refused as a full disk; a number: only the next that many are, then writes work again (a cache that made room). */
+  let writesFail: boolean | number = false
   /** Bucket names whose deletion is refused, as when the browser cannot remove one. */
   let undeletable = new Set<string>()
   /** The open windows the worker can message. Each records what it was sent. */
@@ -178,12 +180,15 @@ export function setup(served: Record<string, Served>, urls: readonly string[] = 
       stores.set(name, store)
       return {
         put: async (key: string | { url: string }, response: Response) => {
-          if (writesFail) throw new DOMException('The quota has been exceeded', 'QuotaExceededError')
+          if (writesFail === true || (typeof writesFail === 'number' && writesFail > 0)) {
+            if (typeof writesFail === 'number') writesFail -= 1
+            throw new DOMException('The quota has been exceeded', 'QuotaExceededError')
+          }
           // A real cache reads the whole body when it stores, so a body that breaks half way makes put() reject.
           store.set(urlOf(key), new Response(await response.arrayBuffer(), { status: response.status, headers: response.headers }))
         },
         keys: async () => [...store.keys()].map((url) => new Request(url)),
-        delete: async (key: { url: string }) => store.delete(key.url),
+        delete: async (key: string | { url: string }) => store.delete(urlOf(key)),
       }
     },
     async match(key: string | { url: string }, options?: { cacheName?: string }) {
@@ -310,7 +315,7 @@ export function setup(served: Record<string, Served>, urls: readonly string[] = 
     lockNames,
     setOffline: (value: boolean) => void (offline = value),
     setCacheUnreadable: (value: boolean) => void (unreadable = value),
-    setWritesFail: (value: boolean) => void (writesFail = value),
+    setWritesFail: (value: boolean | number) => void (writesFail = value),
     setUndeletable: (names: string[]) => void (undeletable = new Set(names)),
     setWindows: (list: Array<Record<string, unknown> & { postMessage: (message: unknown) => void }>) => void (windows = list),
     settle,

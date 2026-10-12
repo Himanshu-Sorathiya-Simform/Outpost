@@ -15,7 +15,7 @@ export const CACHE_HEADER: typeof HDR.swCache = 'X-SW-Cache'
 export const CACHED_AT_HEADER: typeof HDR.swCachedAt = 'X-SW-Cached-At'
 export const REVISION_HEADER: typeof HDR.rev = 'X-Resource-Rev'
 
-/** Not in the contract: why a fallback was answered (network, timeout, status-503, content-type, body). Visible in DevTools only. */
+/** Not in the contract: why a fallback was answered (network, timeout, status-503, content-type, body, shape: a 200 with the wrong fields, lib/shape.ts). Visible in DevTools only. */
 export const FALLBACK_REASON_HEADER = 'X-SW-Fallback-Reason'
 
 /**

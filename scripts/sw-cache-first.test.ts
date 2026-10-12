@@ -184,8 +184,8 @@ describe('cache-first routes', () => {
       const r = await answer(PLATE)
       expect(await r.text()).toBe('<svg>plate</svg>')
       await sw.settle()
-      expect(sw.warnings).toHaveLength(1)
-      expect(String(sw.warnings[0]?.[0])).toContain(PLATE)
+      expect(sw.warnings).toHaveLength(2)
+      expect(String(sw.warnings.at(-1)?.[0])).toContain(PLATE)
     })
   })
 

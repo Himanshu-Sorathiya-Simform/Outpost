@@ -858,6 +858,7 @@ The captive-portal preset covers `/api` only; navigations are not affected.
 1. Warm the cache with the worker running.
 2. Lab → Chaos → Master switches → **Schema drift**. Dispatch payloads change shape on `/api/dispatches*` and in digest items (snake_case, a numeric `level`, no `severity`). The envelope, the status and `X-Api-Version: 1` stay the same; the `ETag` changes, so a stored validator does not match. The page rejects fresh answers as `schema-mismatch`. A copy from before the switch still parses, which is the trap.
 3. A network-first worker that stores the drifted 200 poisons its own cache. Validate the shape you rely on before storing, or key by something that changes. The version header will not tell you: `PUT /api/_lab/release` with `{"api":2}` changes `X-Api-Version`, schema drift does not.
+   In this project the worker does this in `src/sw/lib/shape.ts`: dispatch lists, single dispatches and the digest are checked before they are stored and again before a stored copy is served; a drifted answer with a good copy stored is answered from the copy with `X-SW-Fallback-Reason: shape`, and with nothing stored it goes through unstored so the page files `schema-mismatch`.
 
 React Query holds a second copy:
 - Lab → Query → Settings → **Persist the query cache** (applies on reload) saves successful queries to IndexedDB. **Cache buster**: `version`, `build` or `none`, applied on reload. The saved string is `v<version>`, `b<build id>` or empty. A mismatch on restore discards the whole saved cache.
@@ -872,6 +873,7 @@ Lab → Chaos → Presets → **Rate limited**: half of `/api` requests answer 4
 ### Quota and eviction
 
 - Lab → Environment → **Storage**: the quota meter, "Persisted: no, best effort" or "yes, exempt from eviction", and **Request persistent storage** (the Lab's own `navigator.storage.persist()` call). No seam wraps it. If your app should ask, call it from `src/pwa/*`, for example after installing.
+- In this project a runtime `store()` that hits `QuotaExceededError` deletes the bucket's 10 oldest entries (never the one being replaced) and tries once more (`src/sw/caching/runtime.ts`), and `appinstalled` calls `navigator.storage.persist()` once (`src/pwa/install.ts`).
 - `cache.put`, `addAll` and IndexedDB writes can throw `QuotaExceededError`. In a seam, let it propagate as that `DOMException` name so the page files it as `quota` (Lab → Errors → Error simulator → **Throw QuotaExceededError** shows the classification). In the worker, catch it on a media write and trim the cache; for the outbox, fail loudly: `queueDispatch` throwing makes the page show a queue failure and keep the draft.
 - Eviction removes whole origins' storage when the disk is full and storage is not persistent. Simulate it: Lab → Caches → **Delete all**, and Application → Storage → Clear site data. Your worker must answer misses from the network, not crash, and must not assume `install` precache survives. The outbox is IndexedDB too.
 

@@ -20,7 +20,7 @@
 //      it does not pass through the fetch listener, and Lab -> Network shows it as "Server only" with no tab id.
 //   4. Judge the answer. Only a 200 JSON body with generatedAt, newCount, urgentCount and unread of the right types counts. Anything else
 //      (offline, 5xx, 429, HTML, a body missing fields) REJECTS the handler and posts NOTHING: a failure must never look like a success.
-//   5. Store it, set the app badge to `unread` (src/sw/lib/badge.ts: a third writer of the badge, after the page and a push), and when
+//   5. Store it (a failed write, even after a full disk was given room, is logged and not fatal), set the app badge to `unread` (src/sw/lib/badge.ts: a third writer of the badge, after the page and a push), and when
 //      `urgentCount` is above 0 show ONE notification (tag "digest-urgent", so a later run replaces it; a click opens /inbox) unless a window
 //      is visible and focused, in which case the person is already looking.
 //   6. Tell the pages: periodic-sync-complete { tag, newCount }. The page refetches its digest and inbox queries, with no toast.

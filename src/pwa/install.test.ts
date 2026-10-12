@@ -112,6 +112,31 @@ describe('appinstalled', () => {
   })
 })
 
+describe('persistent storage', () => {
+  it('is asked for once an install has happened, and not before', async () => {
+    const persist = vi.fn(async () => true)
+    vi.stubGlobal('navigator', { storage: { persist } })
+    const { target } = await load()
+    target.dispatchEvent(promptEvent())
+    expect(persist).not.toHaveBeenCalled()
+    target.dispatchEvent(new Event('appinstalled'))
+    expect(persist).toHaveBeenCalledTimes(1)
+  })
+
+  it.each([
+    ['a browser that refuses', { storage: { persist: vi.fn(async () => false) } }],
+    ['a browser whose persist() throws', { storage: { persist: vi.fn(async () => Promise.reject(new DOMException('no', 'SecurityError'))) } }],
+    ['a browser with no storage API', {}],
+  ])('changes nothing and throws nothing in %s', async (_name, navigatorStub) => {
+    vi.stubGlobal('navigator', navigatorStub)
+    const { target, store } = await load()
+    target.dispatchEvent(promptEvent())
+    target.dispatchEvent(new Event('appinstalled'))
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    expect(store.getState().installPromptAvailable).toBe(false)
+  })
+})
+
 describe('without a window', () => {
   it('loads and answers unavailable (a server render, a worker)', async () => {
     vi.resetModules()

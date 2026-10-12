@@ -104,7 +104,9 @@ export const ASSETS_CACHE = nameOf('assets')
  *   Read by:    the same three, and the periodic sync handler (it reads back the digest it kept). Network-first reads it only when the network
  *               fails or is too slow.
  *   Size:       capped at API_LIMIT entries across all three families, oldest stored first.
- *   Changes:    bump the number when a stored shape changes (Lab -> Chaos -> Presets -> Schema drift is the same problem seen live).
+ *   Changes:    bump the number when a stored shape changes (Lab -> Chaos -> Master switches -> Schema drift is the same problem seen live). The
+ *               dispatch and digest answers are checked against lib/shape.ts before they are stored and before a stored copy is served, so a
+ *               drifted answer is never kept; change that check and the number together.
  */
 export const API_CACHE = nameOf('api')
 
@@ -147,6 +149,13 @@ export const MEDIA_LIMIT = 30
  * that costs one slower visit, never a wrong answer.
  */
 export const API_LIMIT = 80
+
+/**
+ * When a write to a runtime bucket fails with QuotaExceededError (the disk, or the site's share of it, is full), this many of that bucket's
+ * oldest entries are deleted and the write is tried once more (caching/runtime.ts). Small enough to lose little, large enough to make room for
+ * one image. A second failure is only logged: the page already has its answer.
+ */
+export const QUOTA_TRIM_ENTRIES = 10
 
 /**
  * How long the network gets before a stored copy is used instead (network first). It has to stay under the page's own request timeout

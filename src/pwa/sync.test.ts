@@ -172,3 +172,41 @@ describe('sync.flushNow', () => {
     expect(await list()).toEqual([])
   })
 })
+
+describe('a full disk', () => {
+  /** An IndexedDB whose write transaction aborts with QuotaExceededError, as a browser's does when the site has no room left. */
+  function fullDisk() {
+    const quota = new DOMException('The disk is full', 'QuotaExceededError')
+    return {
+      open() {
+        const request: { result?: unknown; onsuccess?: () => void; onupgradeneeded?: () => void } = {}
+        setTimeout(() => {
+          request.result = {
+            objectStoreNames: { contains: () => true },
+            close: () => undefined,
+            transaction: () => {
+              const transaction: { error: DOMException; onabort?: () => void; objectStore: () => unknown } = {
+                error: quota,
+                objectStore: () => {
+                  setTimeout(() => transaction.onabort?.(), 0)
+                  return { get: () => ({}), add: () => undefined }
+                },
+              }
+              return transaction
+            },
+          }
+          request.onsuccess?.()
+        }, 0)
+        return request
+      },
+    }
+  }
+
+  it('queueDispatch fails loudly with the QuotaExceededError itself (the page files it as "quota" and keeps the draft), registers no sync and counts nothing', async () => {
+    vi.stubGlobal('indexedDB', fullDisk())
+    await expect(sync.queueDispatch(INPUT)).rejects.toMatchObject({ name: 'QuotaExceededError' })
+    expect(register).not.toHaveBeenCalled()
+    expect(usePwaStore.getState().queuedCount).toBe(0)
+  })
+})
+

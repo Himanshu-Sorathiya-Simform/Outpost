@@ -24,12 +24,13 @@ Not everything the worker does is a strategy. `fetch` answers requests; `install
 - `src/sw/navigation.ts`: page navigations: network first with a 3 s deadline (using the browser's navigation preload), the stored `/index.html` when the network fails, answers 5xx or is too slow. Reads the shell bucket (`shell-v<N>`).
 - `src/sw/build-info.ts` and `src/sw/env.d.ts`: the two build-time constants (`__BUILD_ID__`, `__PRECACHE_URLS__`) and how the rest of the worker reads them.
 - `src/sw/caching/precache.ts`: the precache type. Downloads and checks the shell, its files and the API data, then writes them, all or nothing.
-- `src/sw/caching/runtime.ts`: the runtime type. `lookup()`, `store()` (never-cached guard, size cap) and the `CacheTarget` shape.
+- `src/sw/caching/runtime.ts`: the runtime type. `lookup()`, `store()` (never-cached guard, size cap; on `QuotaExceededError` it deletes the bucket's 10 oldest entries, never the one being replaced, and tries once more, `QUOTA_TRIM_ENTRIES` in `config.ts`) and the `CacheTarget` shape.
 - `src/sw/caching/cleanup.ts`: not a caching type; the deleting. `isOurs()` (a name that is exactly `<family>-v<digits>`), `removeOutdated()` (activate) and `clearOurs(prefix?)` (the `clear-caches` message).
 - `src/sw/caching/on-demand.ts`: the on-demand type. A **documented placeholder**: the contract's `prefetch` message would drive it; nothing in the worker imports it.
 - `src/sw/strategies/cache-only.ts`, `cache-first.ts`, `network-first.ts`, `stale-while-revalidate.ts`, `network-only.ts`: one strategy per file. Each file starts with what it does step by step.
 - `src/sw/lib/headers.ts`: the `X-SW-*` header names (checked against `shared/contracts.ts`) and `stamped()` / `stampForStorage()`.
-- `src/sw/lib/network.ts`: `tryNetwork()` (one try, the whole body read, classified good / real / bad / failed) and `readJson()`; used by network first, stale while revalidate and the periodic sync's digest fetch.
+- `src/sw/lib/network.ts`: `tryNetwork()` (one try, the whole body read, classified good / real / bad / failed; an optional shape check makes a wrong-shaped 200 bad with reason `shape`) and `readJson()`; used by network first, stale while revalidate and the periodic sync's digest fetch.
+- `src/sw/lib/shape.ts`: `shapeCheckFor(pathname)`, plain checks that `/api/dispatches`, `/api/dispatches/<id>` and `/api/digest` still have the fields the app reads (`id`, `stationId`, `title`, `filedAt`, a valid `severity`). Network first applies it before storing and again before serving a stored copy (a copy that fails is deleted). This is what keeps Lab -> Chaos -> Schema drift from poisoning `api-v1`. A deliberate change of those shapes is a change to this file and a bump of `CACHE_VERSIONS.api`.
 - `src/sw/lib/validators.ts`: what a cache-first answer must be before it is stored (`isImage`, `isAsset`, `isBenchEntry`).
 - `src/sw/lib/messages.ts`: what the worker tells the pages (`tellPages`) and the three messages it understands (`get-version`, `skip-waiting`, `clear-caches`; push and sync have their own events).
 - `src/sw/lib/badge.ts`: `applyBadge()`, the worker's badge writer (the page has its own in `src/pwa/badge.ts`: three writers, one badge, last write wins: the page, a push, the periodic sync). It posts a `log` message for each decision, because the OS badge cannot be read.
@@ -74,7 +75,7 @@ Each name is `<family>-v<N>`; `N` comes from `CACHE_VERSIONS` in `config.ts`, sh
 
 - **cache-only**: precache type, reads `precache-v1` only. Routes: `/api/handbook`, `/api/handbook/<slug>`, `/api/bench/cache-only/<key>`.
 - **cache-first**: runtime type, writes `media-v1`, `assets-v1`, `api-v1`; the assets rule also reads `shell-v1` (precache). Routes: `/media/*`, `/assets/*`, `/api/bench/cache-first/<key>`.
-- **network-first**: runtime type, `api-v1`. Routes: `/api/dispatches`, `/api/dispatches/<id>`, `/api/inbox/summary`, `/api/digest`. Falls back to the stored copy after `NETWORK_TIMEOUT_MS` (3 s) or a failure.
+- **network-first**: runtime type, `api-v1`. Routes: `/api/dispatches`, `/api/dispatches/<id>`, `/api/inbox/summary`, `/api/digest`. Falls back to the stored copy after `NETWORK_TIMEOUT_MS` (3 s) or a failure, including a 200 whose body has the wrong shape (fallback reason `shape`); with nothing stored the wrong-shaped answer goes through unstored and the page files `schema-mismatch`.
 - **stale-while-revalidate**: runtime type, `api-v1`. Routes: `/api/stations`, `/api/stations/<code>`, `/api/bench/stale-while-revalidate/<key>`. Posts `cache-updated` when the background refresh finds something different.
 - **network-only**: no cache. Route: `/api/bench/network-only/<key>`. Everything else that must never be cached is not routed at all: the worker does not call `respondWith`, so the browser handles it as if there were no worker.
 - **navigation** (not one of the five): reads `shell-v1`; network first with a 3 s deadline; `activate` turns on navigation preload.

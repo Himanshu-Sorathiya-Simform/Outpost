@@ -7,13 +7,15 @@ describe('network-first routes', () => {
   const INBOX = '/api/inbox/summary'
   const DIGEST = '/api/digest'
   const STAMPED_AT = '2026-01-01T08:00:00.000Z'
-  const listBody = (marker: string) => json({ items: [{ id: 'dp-000064', marker }], nextCursor: null, total: 1, feedRev: 1 }, { 'X-Served-At': STAMPED_AT, ETag: 'W/"a"' })
+  /** A dispatch with the fields the worker checks (lib/shape.ts); `marker` tells two versions of the same list apart. */
+  const row = (id: string, marker = '') => ({ id, stationId: 'st-krn07', title: 'Link dropped', filedAt: '2026-01-01T07:00:00.000Z', severity: 'notice', rev: 1, marker })
+  const listBody = (marker: string) => json({ items: [row('dp-000064', marker)], nextCursor: null, total: 1, feedRev: 1 }, { 'X-Served-At': STAMPED_AT, ETag: 'W/"a"' })
 
   let files: Record<string, Served>
   let sw: ReturnType<typeof setup>
 
   beforeEach(async () => {
-    files = { ...HEALTHY, [LIST]: listBody('first'), [ONE]: json({ id: 'dp-000064', rev: 1 }), [INBOX]: json({ unread: 3 }), [DIGEST]: json({ newCount: 1, items: [] }) }
+    files = { ...HEALTHY, [LIST]: listBody('first'), [ONE]: json(row('dp-000064')), [INBOX]: json({ unread: 3 }), [DIGEST]: json({ newCount: 1, items: [] }) }
     sw = setup(files)
     await sw.install()
     sw.requested.length = 0
@@ -198,6 +200,74 @@ describe('network-first routes', () => {
     })
   })
 
+  describe('an answer with the wrong shape (Lab -> Chaos -> Schema drift)', () => {
+    /** What the server sends while the drift switch is on: valid JSON, status 200, but not a dispatch the app can read. */
+    const drifted = (id = 'dp-000064') => ({ id, station_id: 'st-krn07', title: 'Link dropped', body: 'x', level: 2, filed_at: '2026-01-01T07:00:00.000Z' })
+    const driftedList = () => json({ items: [drifted()], nextCursor: null, total: 1, feedRev: 2 }, { ETag: 'W/"a-drift"' })
+
+    it.each([
+      ['the list', LIST, () => driftedList()],
+      ['one dispatch', ONE, () => json(drifted())],
+      ['the digest', DIGEST, () => json({ newCount: 1, items: [drifted()] })],
+    ])('is not stored, and the stored copy is answered as a fallback with the reason "shape", for %s', async (_name, path, bad) => {
+      await warm(path)
+      const before = await storedText(path)
+      files[path] = bad()
+      const r = await ask(path)
+      expect(r.headers.get('x-sw-source')).toBe('fallback')
+      expect(r.headers.get('x-sw-fallback-reason')).toBe('shape')
+      expect(await r.text()).toBe(before)
+      await sw.settle()
+      expect(await storedText(path)).toBe(before)
+    })
+
+    it('with nothing stored, is handed to the page as it is (the page then files schema-mismatch) and still is not stored', async () => {
+      files[LIST] = driftedList()
+      const r = await ask(LIST)
+      expect(r.status).toBe(200)
+      expect(r.headers.get('x-sw-source')).toBe('network')
+      expect(await r.json()).toMatchObject({ items: [{ station_id: 'st-krn07' }] })
+      await sw.settle()
+      expect(storedKeys()).toEqual([])
+    })
+
+    it('is not stored when it arrives late either, and the copy the page was given stays', async () => {
+      await warm()
+      const before = await storedText(LIST)
+      files[LIST] = { ...driftedList(), delayMs: 6000 }
+      const pending = ask(LIST)
+      await vi.advanceTimersByTimeAsync(3000)
+      const r = await pending
+      expect(r.headers.get('x-sw-fallback-reason')).toBe('timeout')
+      await vi.advanceTimersByTimeAsync(5000)
+      await sw.settle()
+      expect(await storedText(LIST)).toBe(before)
+    })
+
+    it('does not serve a copy that an earlier build stored while it did not check: the copy is deleted and the failure goes through', async () => {
+      await warm()
+      const cache = sw.stores.get(API_CACHE)
+      cache?.set(`${ORIGIN}${LIST}`, new Response(JSON.stringify({ items: [drifted()] }), { headers: { 'content-type': 'application/json' } }))
+      sw.setOffline(true)
+      await expect(ask(LIST)).rejects.toBeInstanceOf(TypeError)
+      expect(storedKeys()).toEqual([])
+    })
+
+    it('does not touch the answers it has no shape for (the inbox counters are stored whatever their fields are called)', async () => {
+      files[INBOX] = json({ anything: true })
+      expect((await ask(INBOX)).headers.get('x-sw-source')).toBe('network')
+      await sw.settle()
+      expect(storedKeys()).toEqual([INBOX])
+    })
+
+    it('accepts an empty page: nothing to check is not a wrong shape', async () => {
+      files[LIST] = json({ items: [], nextCursor: null, total: 0, feedRev: 1 })
+      expect((await ask(LIST)).headers.get('x-sw-source')).toBe('network')
+      await sw.settle()
+      expect(storedKeys()).toEqual([LIST])
+    })
+  })
+
   describe('an answer that is real, even though it is not a 200', () => {
     it.each([
       ['a 401 (the session ended)', 401],
@@ -235,7 +305,9 @@ describe('network-first routes', () => {
       const r = await ask(LIST)
       expect(await r.text()).toContain('first')
       await sw.settle()
-      expect(sw.warnings).toHaveLength(1)
+      // a full disk is tried twice (the second time after making room), so the notice and the final failure are both logged
+      expect(sw.warnings).toHaveLength(2)
+      expect(String(sw.warnings[1]?.[0])).toContain('could not store')
     })
   })
 

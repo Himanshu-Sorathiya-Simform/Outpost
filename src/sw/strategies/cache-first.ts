@@ -13,6 +13,7 @@
 //      load, an offline error on the Bench card); there is no made-up answer.
 //   4. Store the answer only if it is a 200, not zero bytes, and it passes the rule's check (isImage, isAsset, isBenchEntry). The write
 //      is a clone handed to event.waitUntil, so the page gets the original without waiting and the worker is kept alive until it is done.
+//      A write that fails never fails the page; a full disk makes room first (store() in caching/runtime.ts).
 //   5. Answer the network response stamped X-SW-Source: network.
 // Routes and their rules: see routes.ts.
 

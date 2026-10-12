@@ -10,9 +10,12 @@
 //   2. Good in time: store a clone, answer it stamped X-SW-Source: network.
 //   3. A real answer that is not a failure (401, 403, 404...): hand it over as it is. A stored copy must never hide a signed-out
 //      session or a deleted dispatch.
-//   4. Otherwise (network error, timeout, 5xx, 429, HTML, broken body): look the exact URL up in api-v<N>. Found: answer it stamped
-//      X-SW-Source: fallback with X-SW-Fallback-Reason (network, timeout, status-503, content-type, body). If it was the timer that
-//      fired, the slow request is not abandoned: if it later finishes well it refreshes the stored copy (storeLate).
+//      "Good" includes the SHAPE for the answers the app reads field by field (lib/shape.ts: a page of dispatches, one dispatch, the digest):
+//      a 200 that parses but has the wrong shape (Lab -> Chaos -> Schema drift) is not good and is never stored.
+//   4. Otherwise (network error, timeout, 5xx, 429, HTML, broken body, wrong shape): look the exact URL up in api-v<N>. Found: check the
+//      copy has the shape too (a copy stored by an earlier build that did not check is deleted and counts as not found), then answer it
+//      stamped X-SW-Source: fallback with X-SW-Fallback-Reason (network, timeout, status-503, content-type, body, shape). If it was the
+//      timer that fired, the slow request is not abandoned: if it later finishes well it refreshes the stored copy (storeLate).
 //   5. Nothing stored: there is nothing to fall back to, so the real outcome goes through. A slow request is waited for (aborting one
 //      that would have worked only makes the page fail), a bad response reaches the page as it is, and a failed fetch is rethrown, so
 //      the page fails the way it would without a worker.
@@ -21,6 +24,7 @@
 import { API_CACHE, API_LIMIT, NETWORK_TIMEOUT_MS } from '../config'
 import { FALLBACK_REASON_HEADER, stamped } from '../lib/headers'
 import { tryNetwork, type Attempt } from '../lib/network'
+import { shapeCheckFor } from '../lib/shape'
 import { lookup, store, type CacheTarget } from '../caching/runtime'
 
 /** Where network first reads and writes: api-v<N>, capped at API_LIMIT. */
@@ -32,10 +36,33 @@ async function storeLate(attempt: Promise<Attempt>, url: URL): Promise<void> {
   if (result.kind === 'good') await store(NETWORK_FIRST, url, result.response)
 }
 
+/**
+ * The stored copy of this URL, if it is one the app can read. A copy that fails the shape check was stored by an earlier build that did not
+ * check (a drifted answer): it is deleted, so it cannot be served now or later, and the caller treats it as not found.
+ */
+async function usableCopy(url: URL): Promise<{ hit: Response; cacheName: string } | undefined> {
+  const found = await lookup(NETWORK_FIRST, url.href)
+  const hasShape = shapeCheckFor(url.pathname)
+  if (!found || !hasShape) return found
+  let readable = false
+  try {
+    readable = hasShape(await found.hit.clone().json())
+  } catch {
+    // a body that does not parse is not readable either
+  }
+  if (readable) return found
+  try {
+    await (await caches.open(found.cacheName)).delete(url.href)
+  } catch {
+    // the copy stays, and is refused again next time
+  }
+  return undefined
+}
+
 /** Network first: see the step list at the top of this file. */
 export async function networkFirst(event: FetchEvent, request: Request): Promise<Response> {
   const url = new URL(request.url)
-  const attempt = tryNetwork(request, url)
+  const attempt = tryNetwork(request, url, shapeCheckFor(url.pathname))
   let timer: ReturnType<typeof setTimeout> | undefined
   const timedOut = new Promise<undefined>((resolve) => {
     timer = setTimeout(resolve, NETWORK_TIMEOUT_MS)
@@ -50,7 +77,7 @@ export async function networkFirst(event: FetchEvent, request: Request): Promise
   if (early?.kind === 'real') return stamped(early.response, 'network', 'network-first', API_CACHE)
 
   const reason = early ? early.reason : 'timeout'
-  const found = await lookup(NETWORK_FIRST, url.href)
+  const found = await usableCopy(url)
   if (found) {
     if (!early) event.waitUntil(storeLate(attempt, url))
     const answer = stamped(found.hit, 'fallback', 'network-first', found.cacheName)

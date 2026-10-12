@@ -15,7 +15,8 @@
 //   revalidate(url):
 //   3. Ask the server with cache 'no-cache' (so the browser's HTTP cache cannot answer for it) and a REVALIDATE_TIMEOUT_MS deadline.
 //   4. Only a good answer (tryNetwork) may replace the stored copy. Anything else is ignored, kept out of the cache, and logged to the
-//      pages as a warning, because nothing else would report it.
+//      pages as a warning, because nothing else would report it. (Unlike network first, this strategy has no shape check: the stations it
+//      keeps are not read field by field by anything the Lab's Schema drift changes.)
 //   5. Same data as the stored copy (by ETag, else X-Resource-Rev, else the body)? Write nothing and post nothing. This is what ends the
 //      loop "message -> page refetch -> worker answers and revalidates -> message".
 //   6. Different: write it, and only AFTER the write post { type: 'cache-updated', url } to every window, so the refetch that message

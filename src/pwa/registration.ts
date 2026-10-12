@@ -72,9 +72,11 @@ function watchController(): void {
 /**
  * The registration that governs this page: the longest scope containing the URL, else any. Lab → Worker picks the same one.
  * It asks the browser each time instead of remembering the object from register(): a reload empties module variables,
- * and the registration outlives the page.
+ * and the registration outlives the page. A browser with no service worker support has none: undefined, so the callers that read it (push,
+ * periodic sync, showing a notification) get "nothing registered" and not a TypeError from a missing `navigator.serviceWorker`.
  */
 export async function findRegistration(): Promise<ServiceWorkerRegistration | undefined> {
+  if (!supported()) return undefined
   const regs = await navigator.serviceWorker.getRegistrations()
   const inScope = regs.filter((r) => location.href.startsWith(r.scope))
   return [...inScope].sort((a, b) => b.scope.length - a.scope.length)[0] ?? regs[0]

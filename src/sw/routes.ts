@@ -9,6 +9,7 @@
 //   /api/handbook, /api/handbook/<slug>, /api/bench/cache-only/<key>   cache-only              precache   precache-v<N> (read only)
 //   /api/dispatches, /api/dispatches/<id>, /api/inbox/summary, /api/digest
 //                                                                      network-first           runtime    api-v<N>
+//                                                                      (the dispatch and digest answers are also checked for SHAPE, lib/shape.ts)
 //   /api/stations, /api/stations/<code>, /api/bench/stale-while-revalidate/<key>
 //                                                                      stale-while-revalidate  runtime    api-v<N>
 //   /api/bench/network-only/<key>                                      network-only            none       (no cache)
