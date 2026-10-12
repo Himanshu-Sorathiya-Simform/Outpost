@@ -1,0 +1,207 @@
+{
+  "id": "/",
+  "name": "Outpost: field dispatch log",
+  "short_name": "Outpost",
+  "description": "Dispatches, station telemetry and the field handbook from the Outpost relay network.",
+  "lang": "en",
+  "start_url": "/log",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "theme_color": "#ede8da",
+  "background_color": "#ede8da",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshots/wide-log.jpg",
+      "sizes": "1280x720",
+      "type": "image/jpeg",
+      "form_factor": "wide",
+      "label": "The dispatch log, newest first"
+    },
+    {
+      "src": "/screenshots/wide-dispatch.jpg",
+      "sizes": "1280x720",
+      "type": "image/jpeg",
+      "form_factor": "wide",
+      "label": "One dispatch in full"
+    },
+    {
+      "src": "/screenshots/wide-inbox.jpg",
+      "sizes": "1280x720",
+      "type": "image/jpeg",
+      "form_factor": "wide",
+      "label": "The inbox with unread counts"
+    },
+    {
+      "src": "/screenshots/wide-stations.jpg",
+      "sizes": "1280x720",
+      "type": "image/jpeg",
+      "form_factor": "wide",
+      "label": "The relay stations and their status"
+    },
+    {
+      "src": "/screenshots/wide-signal.jpg",
+      "sizes": "1280x720",
+      "type": "image/jpeg",
+      "form_factor": "wide",
+      "label": "The live signal board"
+    },
+    {
+      "src": "/screenshots/wide-handbook.jpg",
+      "sizes": "1280x720",
+      "type": "image/jpeg",
+      "form_factor": "wide",
+      "label": "The field handbook"
+    },
+    {
+      "src": "/screenshots/wide-file.jpg",
+      "sizes": "1280x720",
+      "type": "image/jpeg",
+      "form_factor": "wide",
+      "label": "Filing a new dispatch"
+    },
+    {
+      "src": "/screenshots/wide-settings.jpg",
+      "sizes": "1280x720",
+      "type": "image/jpeg",
+      "form_factor": "wide",
+      "label": "Settings and the PWA controls"
+    },
+    {
+      "src": "/screenshots/narrow-log.jpg",
+      "sizes": "540x960",
+      "type": "image/jpeg",
+      "form_factor": "narrow",
+      "label": "The dispatch log, newest first"
+    },
+    {
+      "src": "/screenshots/narrow-dispatch.jpg",
+      "sizes": "540x960",
+      "type": "image/jpeg",
+      "form_factor": "narrow",
+      "label": "One dispatch in full"
+    },
+    {
+      "src": "/screenshots/narrow-inbox.jpg",
+      "sizes": "540x960",
+      "type": "image/jpeg",
+      "form_factor": "narrow",
+      "label": "The inbox with unread counts"
+    },
+    {
+      "src": "/screenshots/narrow-stations.jpg",
+      "sizes": "540x960",
+      "type": "image/jpeg",
+      "form_factor": "narrow",
+      "label": "The relay stations and their status"
+    },
+    {
+      "src": "/screenshots/narrow-signal.jpg",
+      "sizes": "540x960",
+      "type": "image/jpeg",
+      "form_factor": "narrow",
+      "label": "The live signal board"
+    },
+    {
+      "src": "/screenshots/narrow-handbook.jpg",
+      "sizes": "540x960",
+      "type": "image/jpeg",
+      "form_factor": "narrow",
+      "label": "The field handbook"
+    },
+    {
+      "src": "/screenshots/narrow-file.jpg",
+      "sizes": "540x960",
+      "type": "image/jpeg",
+      "form_factor": "narrow",
+      "label": "Filing a new dispatch"
+    },
+    {
+      "src": "/screenshots/narrow-settings.jpg",
+      "sizes": "540x960",
+      "type": "image/jpeg",
+      "form_factor": "narrow",
+      "label": "Settings and the PWA controls"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "File a dispatch",
+      "short_name": "File",
+      "description": "Write up a new dispatch",
+      "url": "/file",
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Inbox",
+      "short_name": "Inbox",
+      "description": "Unread dispatches",
+      "url": "/inbox",
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Signal board",
+      "short_name": "Signal",
+      "description": "Live station readings",
+      "url": "/signal",
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
+  ],
+  "share_target": {
+    "action": "/share-target",
+    "method": "GET",
+    "enctype": "application/x-www-form-urlencoded",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  },
+  "protocol_handlers": [
+    {
+      "protocol": "web+outpost",
+      "url": "/handle?uri=%s"
+    }
+  ],
+  "launch_handler": {
+    "client_mode": "navigate-existing"
+  }
+}

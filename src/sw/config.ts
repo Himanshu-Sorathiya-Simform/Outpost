@@ -113,7 +113,9 @@ export const CURRENT_CACHES: readonly string[] = [SHELL_CACHE, PRECACHE_CACHE, M
 
 /**
  * NEVER STORED, in any bucket: /api/signal, /api/session, /api/ping, /api/version, /version.json, /sw.js, everything under /api/push/,
- * /api/_lab/ and /api/bench/network-only/, every request that is not a GET, and the unhashed files /favicon.svg and /icons/*.
+ * /api/_lab/ and /api/bench/network-only/, every request that is not a GET, and the unhashed static files /favicon.svg, /icons/*,
+ * /screenshots/* and /manifest.webmanifest (the browser fetches the manifest and its icons and screenshots itself, when it judges
+ * installability and when it opens the install dialog; the worker has no route for them, so the HTTP cache profile is the only cache they see).
  * See NEVER_CACHED below for the part of that list the worker enforces itself.
  */
 

@@ -7,12 +7,9 @@
     <meta name="description" content="Dispatches, station telemetry and field handbook from the Outpost relay network." />
     <meta name="theme-color" content="#ede8da" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-    <!--
-      PWA hooks that are intentionally NOT here yet — they are your job:
-        <link rel="manifest" href="/manifest.webmanifest" />
-        <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
-        service worker registration  ->  src/pwa/*
-    -->
+    <!-- The web app manifest (public/manifest.webmanifest) makes the site installable; the apple-touch-icon is what iOS Safari puts on the home screen. The service worker is registered from src/pwa/boot.ts. -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
     <script>
       // Apply the saved theme before first paint to avoid a flash. Must never throw.
       try {

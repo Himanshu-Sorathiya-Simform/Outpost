@@ -18,7 +18,7 @@
 // The periodic sync handler (src/sw/periodic-sync.ts) also keeps ONE digest in api-v<N>, under the plain /api/digest, with the same store() the
 // strategies use. It does not come through this table: a worker's own fetch() never reaches its fetch listener.
 // Left to the browser on purpose (no route): /api/signal, /api/session, /api/ping, /api/version, /version.json, /api/push/*, /api/_lab/*,
-// /favicon.svg, /icons/*, /sw.js, every other /api path, and every request that is not a GET. See NEVER_CACHED in config.ts.
+// /favicon.svg, /icons/*, /screenshots/*, /manifest.webmanifest, /sw.js, every other /api path, and every request that is not a GET. See NEVER_CACHED in config.ts.
 
 import { API_CACHE, ASSETS_CACHE, MEDIA_CACHE, MEDIA_LIMIT, SHELL_CACHE } from './config'
 import { cacheFirst, type CacheFirstRule } from './strategies/cache-first'

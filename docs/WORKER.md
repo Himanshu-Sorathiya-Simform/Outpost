@@ -61,7 +61,7 @@ Each name is `<family>-v<N>`; `N` comes from `CACHE_VERSIONS` in `config.ts`, sh
   - cache-first: `/api/bench/cache-first/<key>`;
   - periodic sync: the newest digest under the plain `/api/digest`, written by `periodic-sync.ts`. Its `generatedAt` is the next run's `since`; if the entry is evicted or `clear-caches` ran, the next run asks for the last 24 hours.
 
-**Never stored, in any bucket:** `/api/signal`, `/api/session`, `/api/ping`, `/api/version`, `/version.json`, `/sw.js`, everything under `/api/push/`, `/api/_lab/` and `/api/bench/network-only/`, every request that is not a GET, and the unhashed `/favicon.svg` and `/icons/*`. The worker enforces the first group itself (`NEVER_CACHED` in `config.ts`: `store()` refuses them whatever asked).
+**Never stored, in any bucket:** `/api/signal`, `/api/session`, `/api/ping`, `/api/version`, `/version.json`, `/sw.js`, everything under `/api/push/`, `/api/_lab/` and `/api/bench/network-only/`, every request that is not a GET, and the unhashed `/favicon.svg`, `/icons/*`, `/screenshots/*` and `/manifest.webmanifest` (the browser fetches the manifest, its icons and its screenshots itself; the worker has no route for them). The worker enforces the first group itself (`NEVER_CACHED` in `config.ts`: `store()` refuses them whatever asked).
 
 ## Cleanup: what gets deleted, and what never does
 
