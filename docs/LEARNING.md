@@ -528,7 +528,7 @@ Both go through the HTTP cache by default. `fetch(event.request)` keeps the orig
 - Settings → **App updates** has two columns: the website version (asks `/api/version` and `/version.json`; no worker needed) and the service worker (re-fetches `sw.js` byte by byte). They are different questions and can disagree.
 - Lab → Server → **Release simulator** shows both signals. It prints "Website: In step | Update available | Update required | API mismatch", and a second line "Service worker signal, separate from the above: update waiting|not waiting, state …".
 - Lab → Queue → **Open tabs**: every tab of the origin announces itself every 5 s over a BroadcastChannel (version, build id, controller script URL). A tab on a different build carries a **Skew** tag.
-- The website-level banner "A newer version is out" has a Reload button. The forced-upgrade gate "Update required" has one button, Reload, no dismissal, and a note saying a service worker holding the old shell can keep it up.
+- The website-level banner "A newer version is out" has a Reload button that also applies the new worker (`src/shell/banners/update-now.ts`: check for an update, wait briefly for it to install, tell it to take over, and the page reloads by itself; with no worker, or on any failure, it reloads as it is). A plain reload would load the new files under the OLD worker and raise the "Update ready" toast. When that toast is up, the banner is hidden. The forced-upgrade gate "Update required" has one button, Reload, no dismissal, and a note saying a service worker holding the old shell can keep it up.
 
 **Do.**
 1. Remove `skipWaiting()` from `install`. Keep `clients.claim()` in `activate`.
